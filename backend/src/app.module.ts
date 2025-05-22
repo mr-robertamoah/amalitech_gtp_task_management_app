@@ -10,7 +10,14 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { NotificationController } from './notification/notification.controller';
 
 @Module({
-  imports: [AuthModule, UsersModule, TasksModule, TeamsModule, CommentsModule, NotificationsModule],
+  imports: [
+    AuthModule,
+    UsersModule,
+    TasksModule,
+    TeamsModule,
+    CommentsModule,
+    NotificationsModule,
+  ],
   controllers: [AppController, NotificationController],
   providers: [AppService],
 })
