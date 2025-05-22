@@ -8,6 +8,7 @@ import { TeamsModule } from './teams/teams.module';
 import { CommentsModule } from './comments/comments.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { NotificationController } from './notification/notification.controller';
+import { DatabaseModule } from './database/database.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { NotificationController } from './notification/notification.controller';
     TeamsModule,
     CommentsModule,
     NotificationsModule,
+    DatabaseModule,
   ],
   controllers: [AppController, NotificationController],
   providers: [AppService],
