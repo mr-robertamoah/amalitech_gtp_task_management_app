@@ -4,6 +4,8 @@ import { UsersService } from 'src/users/users.service';
 import * as bcrypt from 'bcrypt';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { User } from 'src/users/interfaces/users.interface';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class AuthService {
@@ -12,14 +14,18 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async validateUser(username: string, password: string): Promise<any> {
-    const user = await this.usersService.findByUsername(username);
+  async validateUser(username: string, password: string): Promise<User | null> {
+    const user = await this.usersService.getUserByUsername(username);
     // Check if the user exists and if the password matches
-    if (user && await bcrypt.compare(password, user.password)) {
+    if (
+      user &&
+      user.password &&
+      (await bcrypt.compare(password, user.password))
+    ) {
       // Remove password from the user object before returning
-      const { password, ...result } = user;
+      delete user.password;
 
-      return result;
+      return user;
     }
     // If user not found or password doesn't match, return null
     return null;
@@ -48,18 +54,20 @@ export class AuthService {
     const newUser = await this.usersService.createUser({
       ...dto,
       password: hashedPassword,
+      // Generate a unique UUID for userId
+      userId: uuidv4(),
     });
+
+    if (!newUser) {
+      throw new Error('User registration failed');
+    }
+    // Remove password from the newUser object before returning
+    delete newUser.password;
+    // Generate JWT token
     const payload = { username: newUser.username, sub: newUser.userId };
     return {
       access_token: this.jwtService.sign(payload),
-      user: {
-        userId: newUser.userId,
-        username: newUser.username,
-        email: newUser.email,
-        teams: newUser.teams,
-        createdAt: newUser.createdAt,
-      },
+      user: newUser,
     };
   }
 }
-

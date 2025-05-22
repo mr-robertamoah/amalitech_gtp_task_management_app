@@ -1,10 +1,10 @@
 export interface User {
   userId: string;
   username: string;
-  password: string; // Hashed
+  password?: string; // Hashed
   email: string;
   teams: TeamMembership[]; // Empty by default
-  createdAt: string;
+  createdAt?: string;
 }
 
 export interface TeamMembership {

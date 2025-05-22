@@ -7,6 +7,7 @@ export interface UserMembership {
 export interface Team {
   teamId: string;
   name: string;
+  ownerId: string;
   description: string;
   members: UserMembership[];
   createdAt: string; // ISO timestamp
