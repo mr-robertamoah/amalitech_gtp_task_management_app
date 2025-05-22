@@ -69,7 +69,7 @@ export class UsersService {
     const user = await this.getUserById(userId);
 
     if (!user) {
-      throw new Error('User not found');
+      return null;
     }
 
     return {
@@ -117,7 +117,7 @@ export class UsersService {
     }
     const user = await this.getUserById(userId);
     if (!user) {
-      throw new Error('User not found');
+      return null;
     }
 
     const updateExpr: string[] = [];
@@ -153,7 +153,7 @@ export class UsersService {
     }
   }
 
-  async deleteUser(userId: string): Promise<any> {
+  async deleteUser(userId: string): Promise<{ message: string } | null> {
     try {
       await this.db.send(
         new DeleteCommand({
@@ -169,7 +169,7 @@ export class UsersService {
       throw new Error('User deletion failed');
     }
 
-    return null;
+    return { message: 'User deleted successfully' };
     // Any team membership records (TEAM#<teamId> with SK = MEMBER#<userId>)
     // Any tasks/comments assigned to the user (use batch delete or DynamoDB Streams to automate cascading deletes)
   }
@@ -194,7 +194,7 @@ export class UsersService {
   ): Promise<User | null> {
     const user = await this.getUserById(userId);
     if (!user) {
-      throw new Error('User not found');
+      return null;
     }
 
     // Check if old password matches

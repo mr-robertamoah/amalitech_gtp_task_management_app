@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   NotFoundException,
   Param,
@@ -53,5 +54,11 @@ export class UsersController {
       throw new NotFoundException('User not found');
     }
     return user;
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Delete(':userId')
+  async deleteUser(@Param('userId') userId: string) {
+    return await this.usersService.deleteUser(userId);
   }
 }
