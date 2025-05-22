@@ -48,6 +48,27 @@ export class UsersService {
     return null;
   }
 
+  async getUserByUsernameOrEmail(data: {
+    username?: string;
+    email?: string;
+  }): Promise<User | null> {
+    const res = await this.db.send(
+      new ScanCommand({
+        TableName: process.env.DYNAMO_TABLE_NAME,
+        FilterExpression: 'username = :val1 OR email = :val2',
+        ExpressionAttributeValues: {
+          ':val1': data.username,
+          ':val2': data.email,
+        },
+      }),
+    );
+
+    if (res.Items && res.Items.length > 0) {
+      return res.Items[0] as User;
+    }
+    return null;
+  }
+
   async getUserByEmail(email: string): Promise<User | null> {
     const res = await this.db.send(
       new ScanCommand({
@@ -81,6 +102,16 @@ export class UsersService {
     email: string;
     password: string;
   }): Promise<User | null> {
+    // Check if user with the same username or email already exists
+    const existingUser = await this.getUserByUsernameOrEmail({
+      username: user.username,
+      email: user.email,
+    });
+
+    if (existingUser) {
+      throw new Error('User with this username or email already exists');
+    }
+
     try {
       await this.db.send(
         new PutCommand({
