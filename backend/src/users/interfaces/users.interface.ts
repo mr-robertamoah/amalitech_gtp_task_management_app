@@ -3,12 +3,20 @@ export interface User {
   username: string;
   password?: string; // Hashed
   email: string;
+  emailVerified?: boolean;
+  avatarUrl?: string;
+  bio?: string;
   teams: TeamMembership[]; // Empty by default
   createdAt?: string;
 }
 
 export interface TeamMembership {
   teamId: string;
-  role: 'admin' | 'member';
+  role?: 'admin' | 'member';
   joinedAt: string; // ISO timestamp
+  isOwner?: boolean;
+  status: 'invited' | 'requested' | 'left' | 'banned' | 'active';
+  inviteToken?: string;
+  inviteTokenExpiresAt?: string;
+  inviteTokenUsedAt?: string;
 }

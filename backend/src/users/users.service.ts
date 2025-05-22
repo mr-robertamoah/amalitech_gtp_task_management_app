@@ -72,13 +72,7 @@ export class UsersService {
       return null;
     }
 
-    return {
-      userId: user.userId,
-      username: user.username,
-      email: user.email,
-      teams: user.teams || [],
-      createdAt: user.createdAt,
-    };
+    return this.getUserData(user);
   }
 
   async createUser(user: {
@@ -183,6 +177,8 @@ export class UsersService {
       userId: user.userId,
       username: user.username,
       email: user.email,
+      bio: user.bio,
+      avatarUrl: user.avatarUrl,
       teams: user.teams || [],
       createdAt: user.createdAt || new Date().toISOString(),
     };

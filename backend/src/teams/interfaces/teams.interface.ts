@@ -1,7 +1,12 @@
 export interface UserMembership {
   userId: string;
-  role: 'admin' | 'member';
+  role?: 'admin' | 'member';
   joinedAt: string; // ISO timestamp
+  isOwner?: boolean;
+  status: 'invited' | 'requested' | 'left' | 'banned' | 'active';
+  inviteToken?: string; // Optional, only for invited users
+  inviteTokenExpiresAt?: string; // Optional, only for invited users
+  inviteTokenUsedAt?: string; // Optional, only for invited users
 }
 
 export interface Team {
@@ -9,6 +14,8 @@ export interface Team {
   name: string;
   ownerId: string;
   description: string;
+  logoUrl?: string;
+  privacy: 'public' | 'private';
   members: UserMembership[];
   createdAt: string; // ISO timestamp
 }
