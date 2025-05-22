@@ -8,6 +8,8 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { Inject, Injectable } from '@nestjs/common';
 import { User } from './interfaces/users.interface';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -99,14 +101,7 @@ export class UsersService {
         }),
       );
 
-      return {
-        userId: user.userId,
-        username: user.username,
-        email: user.email,
-        teams: [],
-        password: user.password, // Password should be hashed before storing
-        createdAt: new Date().toISOString(),
-      };
+      return this.getUserData(user as User);
     } catch (error) {
       console.error('Error creating user:', error);
       throw new Error('User creation failed');
@@ -150,7 +145,8 @@ export class UsersService {
       );
 
       const updatedUser = await this.getUserById(userId);
-      return updatedUser;
+
+      return this.getUserData(updatedUser);
     } catch (error) {
       console.error('Error updating user:', error);
       throw new Error('User update failed');
@@ -172,7 +168,67 @@ export class UsersService {
       console.error('Error deleting user:', error);
       throw new Error('User deletion failed');
     }
+
+    return null;
+    // Any team membership records (TEAM#<teamId> with SK = MEMBER#<userId>)
+    // Any tasks/comments assigned to the user (use batch delete or DynamoDB Streams to automate cascading deletes)
   }
-  // Any team membership records (TEAM#<teamId> with SK = MEMBER#<userId>)
-  // Any tasks/comments assigned to the user (use batch delete or DynamoDB Streams to automate cascading deletes)
+
+  private getUserData(user: User | null): User | null {
+    if (!user) {
+      return null;
+    }
+
+    return {
+      userId: user.userId,
+      username: user.username,
+      email: user.email,
+      teams: user.teams || [],
+      createdAt: user.createdAt || new Date().toISOString(),
+    };
+  }
+
+  async changeUserPassword(
+    userId: string,
+    changePasswordDto: ChangePasswordDto,
+  ): Promise<User | null> {
+    const user = await this.getUserById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Check if old password matches
+    if (
+      user.password &&
+      !(await bcrypt.compare(changePasswordDto.oldPassword, user.password))
+    ) {
+      throw new Error('Old password is incorrect');
+    }
+
+    // Update password
+    const hashedPassword = await bcrypt.hash(changePasswordDto.newPassword, 10);
+    try {
+      await this.db.send(
+        new UpdateCommand({
+          TableName: process.env.DYNAMO_TABLE_NAME,
+          Key: {
+            PK: `USER#${userId}`,
+            SK: 'METADATA',
+          },
+          UpdateExpression: 'SET #password = :password',
+          ExpressionAttributeNames: {
+            '#password': 'password',
+          },
+          ExpressionAttributeValues: {
+            ':password': hashedPassword,
+          },
+        }),
+      );
+
+      return this.getUserData(user);
+    } catch (error) {
+      console.error('Error changing password:', error);
+      throw new Error('Password change failed');
+    }
+  }
 }
