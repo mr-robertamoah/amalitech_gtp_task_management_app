@@ -5,8 +5,6 @@ import { ValidationPipe } from '@nestjs/common';
 
 dotenv.config();
 
-console.log(process.env.JWT_SECRET);
-
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 

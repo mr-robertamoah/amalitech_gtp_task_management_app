@@ -1,3 +1,5 @@
+import { UserSafe } from 'src/users/interfaces/users.interface';
+
 export interface UserMembership {
   userId: string;
   role?: 'admin' | 'member';
@@ -7,6 +9,7 @@ export interface UserMembership {
   inviteToken?: string; // Optional, only for invited users
   inviteTokenExpiresAt?: string; // Optional, only for invited users
   inviteTokenUsedAt?: string; // Optional, only for invited users
+  details?: UserSafe;
 }
 
 export interface Team {

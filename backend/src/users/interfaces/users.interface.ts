@@ -1,3 +1,5 @@
+import { Team } from 'src/teams/interfaces/teams.interface';
+
 export interface User {
   userId: string;
   username: string;
@@ -10,6 +12,14 @@ export interface User {
   createdAt?: string;
 }
 
+export interface UserSafe {
+  userId: string;
+  username: string;
+  email: string;
+  avatarUrl?: string;
+  createdAt?: string;
+}
+
 export interface TeamMembership {
   teamId: string;
   role?: 'admin' | 'member';
@@ -19,4 +29,5 @@ export interface TeamMembership {
   inviteToken?: string;
   inviteTokenExpiresAt?: string;
   inviteTokenUsedAt?: string;
+  details?: Team;
 }

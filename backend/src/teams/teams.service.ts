@@ -1,4 +1,4 @@
-import { User } from 'src/users/interfaces/users.interface';
+import { User, UserSafe } from 'src/users/interfaces/users.interface';
 import {
   DeleteCommand,
   DynamoDBDocumentClient,
@@ -38,6 +38,28 @@ export class TeamsService {
       ...team,
       members: await this.getTeamMembers(teamId),
     };
+  }
+
+  async getMembers(
+    user: User | null,
+    teamId: string,
+  ): Promise<UserMembership[]> {
+    const team = await this.getTeamById(teamId);
+
+    if (!team) {
+      return [];
+    }
+
+    if (team.privacy == 'private') {
+      const teamMembership: UserMembership | null =
+        await this.getTeamMembership(teamId, user?.userId || null);
+
+      if (!teamMembership) {
+        return [];
+      }
+    }
+
+    return await this.getTeamMembers(teamId);
   }
 
   async getTeamById(
@@ -81,7 +103,7 @@ export class TeamsService {
   }
 
   async getTeams(user: User) {
-    let res = await this.db.send(
+    const res = await this.db.send(
       new QueryCommand({
         TableName: process.env.DYNAMO_TABLE_NAME,
         KeyConditionExpression: 'PK = :PK AND begins_with(SK, :SK)',
@@ -166,13 +188,17 @@ export class TeamsService {
       joinedAt: item.joinedAt,
       isOwner: item.isOwner,
       status: item.status,
+      details: item?.details,
     })) as UserMembership[];
   }
 
   async getTeamMembership(
     teamId: string,
-    userId: string,
+    userId: string | null,
   ): Promise<UserMembership | null> {
+    if (!userId) {
+      return null;
+    }
     const res = await this.db.send(
       new GetCommand({
         TableName: process.env.DYNAMO_TABLE_NAME,
@@ -244,6 +270,7 @@ export class TeamsService {
           role: 'admin',
           joinedAt: date,
           status: 'active',
+          details: this.getUserSafeData(owner),
         },
       }),
     );
@@ -259,6 +286,10 @@ export class TeamsService {
           role: 'admin',
           joinedAt: date,
           status: 'active',
+          details: {
+            ...createTeamDto,
+            teamId,
+          },
         },
       }),
     );
@@ -433,6 +464,7 @@ export class TeamsService {
             isOwner: false,
             role: 'member',
             status: 'invited',
+            details: this.getUserSafeData(user),
           },
         }),
       );
@@ -447,6 +479,7 @@ export class TeamsService {
             isOwner: false,
             role: 'member',
             status: 'invited',
+            details: this.getTeamSafeData(team),
           },
         }),
       );
@@ -661,6 +694,23 @@ export class TeamsService {
     // }
 
     return await this.getTeamData(team);
+  }
+
+  getUserSafeData(user: User): UserSafe {
+    return {
+      userId: user.userId,
+      username: user.username,
+      email: user.email,
+    };
+  }
+
+  private getTeamSafeData(team: Team) {
+    return {
+      teamId: team.teamId,
+      name: team.name,
+      description: team.description,
+      createdAt: team.createdAt,
+    };
   }
 
   async makeMembers(
@@ -924,11 +974,11 @@ export class TeamsService {
     }
 
     const res = await this.db.send(
-      new QueryCommand({
+      new ScanCommand({
         TableName: process.env.DYNAMO_TABLE_NAME,
-        KeyConditionExpression: 'PK = :PK AND SK = :SK',
+        FilterExpression: 'begins_with(PK, :PK) AND SK = :SK',
         ExpressionAttributeValues: {
-          ':PK': `PROJECT#${teamId}`,
+          ':PK': `PROJECT#`,
           ':SK': `TEAM#${teamId}`,
         },
       }),
@@ -940,16 +990,7 @@ export class TeamsService {
 
     return (res.Items as Project[])
       .map((item) => {
-        if (!item) return null;
-        return {
-          projectId: item.projectId,
-          name: item.name,
-          description: item.description,
-          creatorId: item.creatorId,
-          teamId: item.teamId,
-          createdAt: item.createdAt,
-          updatedAt: item.updatedAt,
-        } as Project;
+        return this.getProjectData(item);
       })
       .filter((project) => !!project);
   }
@@ -979,5 +1020,48 @@ export class TeamsService {
     );
 
     return teams.filter((item) => !!item);
+  }
+
+  getProjectData(project): Project | null {
+    if (!project) {
+      return null;
+    }
+
+    if (!project.projectId?.S)
+      return {
+        projectId: project.projectId,
+        name: project.name,
+        description: project.description,
+        creator: project.creator,
+        teamId: project.teamId,
+        createdAt: project.createdAt,
+        updatedAt: project.updatedAt,
+      };
+
+    return {
+      projectId: project.projectId?.S,
+      name: project.name?.S,
+      description: project.description?.S,
+      creator: this.transformObject(project.creator?.M),
+      teamId: project.teamId?.S,
+      createdAt: project.createdAt?.S,
+      updatedAt: project.updatedAt?.S,
+    } as Project;
+  }
+
+  private transformObject(obj) {
+    const transformedObj = {};
+    for (const key in obj) {
+      if (typeof obj[key] === 'object' && obj[key] !== null) {
+        if (obj[key].S) {
+          transformedObj[key] = obj[key].S;
+        } else {
+          transformedObj[key] = this.transformObject(obj[key]);
+        }
+      } else {
+        transformedObj[key] = obj[key];
+      }
+    }
+    return transformedObj;
   }
 }

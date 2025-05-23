@@ -217,7 +217,14 @@ export class TeamsController {
 //     return team;
 //   }
 
-  @UseGuards(AuthGuard('jwt'))
+  @Get(':teamId/members')
+  async getTeamMembers(
+    @Param('teamId') teamId: string,
+    @GetUser() user: User | null,
+  ) {
+    return await this.teamsService.getMembers(user, teamId);
+  }
+
   @Get(':teamId/projects')
   async getProjects(
     @Param('teamId') teamId: string,
