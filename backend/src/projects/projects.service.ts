@@ -188,6 +188,10 @@ export class ProjectsService {
       return null;
     }
 
+    if (this.hasProjectEnded(oldProject)) {
+      throw new Error('Project has ended');
+    }
+
     if (owner.userId !== oldProject.creator.userId || !teamMembership.isOwner) {
       throw new Error(
         'You are not the creator of this project nor the owner of the team.',
@@ -220,6 +224,8 @@ export class ProjectsService {
       project.endAt = updateProjectDto.endAt;
       hasUpdate = true;
     }
+
+    this.validateDates(project.startAt, project.endAt);
 
     if (!hasUpdate) {
       throw new Error('No fields to update');
@@ -256,6 +262,10 @@ export class ProjectsService {
       throw new Error('Project not found');
     }
 
+    if (this.hasProjectEnded(project)) {
+      throw new Error('Project has ended');
+    }
+
     const teamMembership: UserMembership | null =
       await this.teamsService.getTeamMembership(project.teamId, owner.userId);
 
@@ -284,5 +294,73 @@ export class ProjectsService {
     // TODO if not deleted by creator, notify creator
 
     return { message: 'Project deleted successfully' };
+  }
+
+  validateDates(startAt: string | undefined, endAt: string | undefined) {
+    if (startAt && endAt) {
+      const startDate = new Date(startAt);
+      const endDate = new Date(endAt);
+
+      if (startDate > endDate) {
+        throw new Error('Start date cannot be after end date');
+      }
+    }
+
+    throw new Error(
+      'You cannot set on one date (startAt or endAt) without the other',
+    );
+  }
+
+  hasProjectEnded(project: Project): boolean {
+    if (!project.endAt) {
+      return false;
+    }
+
+    const endDate = new Date(project.endAt);
+    const currentDate = new Date();
+
+    return endDate < currentDate;
+  }
+
+  isProjectInProgress(project: Project): boolean {
+    if (!project.startAt || !project.endAt) {
+      return false;
+    }
+
+    const startDate = new Date(project.startAt);
+    const endDate = new Date(project.endAt);
+    const currentDate = new Date();
+
+    return startDate <= currentDate && currentDate <= endDate;
+  }
+
+  isProjectUpcoming(project: Project): boolean {
+    if (!project.startAt) {
+      return false;
+    }
+
+    const startDate = new Date(project.startAt);
+    const currentDate = new Date();
+
+    return startDate > currentDate;
+  }
+
+  isProjectOverdue(project: Project): boolean {
+    if (!project.endAt) {
+      return false;
+    }
+
+    const endDate = new Date(project.endAt);
+    const currentDate = new Date();
+
+    return endDate < currentDate;
+  }
+
+  isProjectActive(project: Project): boolean {
+    return (
+      this.isProjectInProgress(project) ||
+      this.isProjectUpcoming(project) ||
+      !this.hasProjectEnded(project)
+    );
   }
 }
