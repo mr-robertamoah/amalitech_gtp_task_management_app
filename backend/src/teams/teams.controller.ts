@@ -16,6 +16,7 @@ import { User } from 'src/users/interfaces/users.interface';
 import { UpdateTeamDto } from './dto/update-team.dto';
 import { InviteUsersDto } from './dto/invite-users.dto';
 import { RemoveUsersDto } from './dto/remove-users.dto';
+import { RespondToInvitationDto } from './dto/respond-to-invitation.dto';
 
 @Controller('teams')
 export class TeamsController {
@@ -156,33 +157,31 @@ export class TeamsController {
     return team;
   }
 
-//   @UseGuards(AuthGuard('jwt'))
-//   @Post(':teamId/change-role')
-//   async changeUserRoleInTeam(@Param('teamId') teamId: string, @Body() changeRoleDto: ChangeRoleDto) {
-//     const team = await this.teamsService.changeUserRoleInTeam(teamId, changeRoleDto);
-//     if (!team) {
-//       throw new NotFoundException('Team not found');
-//     }
-//     return team;
-//   }
+  @UseGuards(AuthGuard('jwt'))
+  @Post(':teamId/respond-to-invitation')
+  async respondToTeamInvitation(
+    @Param('teamId') teamId: string,
+    @GetUser() user: User,
+    @Body() respondDto: RespondToInvitationDto,
+  ) {
+    const team = await this.teamsService.respondToTeamInvitation(
+      user,
+      teamId,
+      respondDto,
+    );
+    if (!team) {
+      throw new NotFoundException('Team not found');
+    }
+    return team;
+  }
 
-//   @UseGuards(AuthGuard('jwt'))
-//   @Post(':teamId/respond-to-invitation')
-//   async respondToTeamInvitation(@Param('teamId') teamId: string, @Body() respondDto: RespondToInvitationDto) {
-//     const team = await this.teamsService.respondToTeamInvitation(teamId, respondDto);
-//     if (!team) {
-//       throw new NotFoundException('Team not found');
-//     }
-//     return team;
-//   }
-
-//   @UseGuards(AuthGuard('jwt'))
-//   @Post(':teamId/leave')
-//   async leaveTeam(@Param('teamId') teamId: string) {
-//     const team = await this.teamsService.leaveTeam(teamId);
-//     if (!team) {
-//       throw new NotFoundException('Team not found');
-//     }
-//     return team;
-//   }
+  @UseGuards(AuthGuard('jwt'))
+  @Post(':teamId/leave')
+  async leaveTeam(@Param('teamId') teamId: string, @GetUser() user: User) {
+    const team = await this.teamsService.leaveTeam(user, teamId);
+    if (!team) {
+      throw new NotFoundException('Team not found');
+    }
+    return team;
+  }
 }

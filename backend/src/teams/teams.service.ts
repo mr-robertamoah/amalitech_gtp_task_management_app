@@ -15,6 +15,7 @@ import { UpdateTeamDto } from './dto/update-team.dto';
 import { InviteUsersDto } from './dto/invite-users.dto';
 import { UsersService } from 'src/users/users.service';
 import { RemoveUsersDto } from './dto/remove-users.dto';
+import { RespondToInvitationDto } from './dto/respond-to-invitation.dto';
 
 @Injectable()
 export class TeamsService {
@@ -689,6 +690,123 @@ export class TeamsService {
         },
         ExpressionAttributeValues: {
           ':role': `${role}`,
+        },
+      }),
+    );
+  }
+
+  async respondToTeamInvitation(
+    user: User,
+    teamId: string,
+    dto: RespondToInvitationDto,
+  ): Promise<Team | null> {
+    const team: Team | null = await this.getTeamById(teamId);
+
+    if (!team) {
+      return null;
+    }
+
+    const userMembership: UserMembership | null = await this.getTeamMembership(
+      teamId,
+      user.userId,
+    );
+
+    if (!userMembership) {
+      return null;
+    }
+
+    if (
+      userMembership.status !== 'invited' ||
+      userMembership.userId !== user.userId
+    ) {
+      throw new Error('You are not invited to this team');
+    }
+
+    if (dto.response === 'accept') {
+      await this.updateUserStatus(user.userId, teamId, 'active');
+
+      // TODO Notify owner about user accepting the invitation
+      // await this.notificationService.sendNotification(
+      //   team.ownerId,
+      //   `${user.username} has accepted the invitation to join the team ${team.name}`,
+      // );
+      return await this.getTeamData(team);
+    }
+    await this.deleteTeamMembership(teamId, user.userId);
+
+    // TODO Notify owner about user declining the invitation
+    // await this.notificationService.sendNotification(
+    //   team.ownerId,
+    //   `${user.username} has declined the invitation to join the team ${team.name}`,
+    // );
+
+    if (team.privacy === 'private') return null;
+
+    return await this.getTeamData(team);
+  }
+
+  async leaveTeam(user: User, teamId: string): Promise<Team | null> {
+    const team: Team | null = await this.getTeamById(teamId);
+
+    if (!team) {
+      return null;
+    }
+
+    const userMembership: UserMembership | null = await this.getTeamMembership(
+      teamId,
+      user.userId,
+    );
+
+    if (!userMembership) {
+      return null;
+    }
+
+    if (userMembership.userId !== user.userId) {
+      throw new Error('You are not a member of this team');
+    }
+
+    if (userMembership.isOwner) {
+      throw new Error('You cannot leave a team you own');
+    }
+
+    if (userMembership.status == 'invited') {
+      throw new Error(
+        'You only have an invitation to this team. You are not yet a member.',
+      );
+    }
+
+    await this.deleteTeamMembership(teamId, user.userId);
+
+    // TODO Notify owner about user leaving the team
+    // await this.notificationService.sendNotification(
+    //   team.ownerId,
+    //   `${user.username} has left the team ${team.name}`,
+    // );
+    if (team.privacy === 'private') return null;
+
+    return await this.getTeamData(team);
+  }
+
+  private async deleteTeamMembership(
+    teamId: string,
+    userId: string,
+  ): Promise<void> {
+    await this.db.send(
+      new DeleteCommand({
+        TableName: process.env.DYNAMO_TABLE_NAME,
+        Key: {
+          PK: `TEAM#${teamId}`,
+          SK: `MEMBER#${userId}`,
+        },
+      }),
+    );
+
+    await this.db.send(
+      new DeleteCommand({
+        TableName: process.env.DYNAMO_TABLE_NAME,
+        Key: {
+          PK: `USER#${userId}`,
+          SK: `TEAM#${teamId}`,
         },
       }),
     );

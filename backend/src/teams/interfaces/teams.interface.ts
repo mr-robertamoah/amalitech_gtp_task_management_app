@@ -3,7 +3,7 @@ export interface UserMembership {
   role?: 'admin' | 'member';
   joinedAt: string; // ISO timestamp
   isOwner?: boolean;
-  status: 'invited' | 'requested' | 'left' | 'banned' | 'active';
+  status: 'invited' | 'requested' | 'banned' | 'active';
   inviteToken?: string; // Optional, only for invited users
   inviteTokenExpiresAt?: string; // Optional, only for invited users
   inviteTokenUsedAt?: string; // Optional, only for invited users
