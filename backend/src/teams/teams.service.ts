@@ -5,6 +5,7 @@ import {
   GetCommand,
   PutCommand,
   QueryCommand,
+  ScanCommand,
   UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { Inject, Injectable } from '@nestjs/common';
@@ -16,6 +17,8 @@ import { InviteUsersDto } from './dto/invite-users.dto';
 import { UsersService } from 'src/users/users.service';
 import { RemoveUsersDto } from './dto/remove-users.dto';
 import { RespondToInvitationDto } from './dto/respond-to-invitation.dto';
+import { Project } from 'src/projects/interfaces/project.interface';
+import { BatchGetItemCommand } from '@aws-sdk/client-dynamodb';
 
 @Injectable()
 export class TeamsService {
@@ -58,6 +61,93 @@ export class TeamsService {
     return await this.getTeamData(res.Item as Team, withMembers);
   }
 
+  async getTeam(user: User, teamId: string): Promise<Team | null> {
+    const team = await this.getTeamById(teamId);
+
+    if (!team) {
+      return null;
+    }
+
+    const teamMembership: UserMembership | null = await this.getTeamMembership(
+      teamId,
+      user.userId,
+    );
+
+    if (team.privacy == 'private' && !teamMembership) {
+      return null;
+    }
+
+    return await this.getTeamData(team);
+  }
+
+  async getTeams(user: User) {
+    let res = await this.db.send(
+      new QueryCommand({
+        TableName: process.env.DYNAMO_TABLE_NAME,
+        KeyConditionExpression: 'PK = :PK AND begins_with(SK, :SK)',
+        ExpressionAttributeValues: {
+          ':PK': `USER#${user.userId}`,
+          ':SK': 'TEAM#',
+        },
+      }),
+    );
+
+    if (!res.Items || res.Items.length === 0) {
+      return [];
+    }
+
+    const teamIds = res.Items.map((item) => {
+      if (item.SK?.startsWith('TEAM#')) {
+        return item.SK.split('#')[1];
+      }
+
+      return null;
+    }).filter((item) => !!item);
+
+    console.log(res.Items, teamIds);
+
+    if (teamIds.length === 0) {
+      return [];
+    }
+
+    const batchGetItemRes = await this.db.send(
+      new BatchGetItemCommand({
+        RequestItems: {
+          [process.env.DYNAMO_TABLE_NAME || '']: {
+            Keys: teamIds.map((teamId) => ({
+              PK: { S: `TEAM#${teamId}` },
+              SK: { S: `METADATA` },
+            })),
+          },
+        },
+      }),
+    );
+
+    console.log(batchGetItemRes);
+
+    if (!batchGetItemRes.Responses) {
+      return [];
+    }
+
+    const teams = batchGetItemRes.Responses[
+      process.env.DYNAMO_TABLE_NAME || ''
+    ].map((item) => {
+      console.log(item);
+      if (!item.SK?.S) {
+        return null;
+      }
+      return {
+        teamId: item.PK?.S?.split('#')[1],
+        name: item.name?.S,
+        ownerId: item.ownerId?.S,
+        description: item.description?.S,
+        createdAt: item.createdAt?.S,
+      } as Team;
+    });
+
+    return teams;
+  }
+
   private async getTeamMembers(teamId: string): Promise<UserMembership[]> {
     const members = await this.db.send(
       new QueryCommand({
@@ -79,7 +169,7 @@ export class TeamsService {
     })) as UserMembership[];
   }
 
-  private async getTeamMembership(
+  async getTeamMembership(
     teamId: string,
     userId: string,
   ): Promise<UserMembership | null> {
@@ -205,6 +295,8 @@ export class TeamsService {
       throw new Error('You are not the owner of this team');
     }
 
+    // TODO update only fields that are provided and are different from existing data
+
     await this.db.send(
       new PutCommand({
         TableName: process.env.DYNAMO_TABLE_NAME,
@@ -216,6 +308,8 @@ export class TeamsService {
         },
       }),
     );
+
+    // TODO notify other members apart from owner
 
     return await this.getTeamData(team);
   }
@@ -278,6 +372,8 @@ export class TeamsService {
       console.error('Error deleting team:', error);
       throw new Error('User team membership deletion failed.');
     }
+
+    // TODO notify other members apart from owner
 
     return { message: 'Team deleted successfully' };
   }
@@ -810,5 +906,78 @@ export class TeamsService {
         },
       }),
     );
+  }
+
+  async getProjects(user: User | null, teamId: string): Promise<Project[]> {
+    const team = await this.getTeamById(teamId);
+
+    if (!team) {
+      throw new Error('Team not found');
+    }
+
+    const isMember = team.members.some(
+      (member) => member.userId === user?.userId,
+    );
+
+    if (!isMember && team.privacy === 'private') {
+      return [];
+    }
+
+    const res = await this.db.send(
+      new QueryCommand({
+        TableName: process.env.DYNAMO_TABLE_NAME,
+        KeyConditionExpression: 'PK = :PK AND SK = :SK',
+        ExpressionAttributeValues: {
+          ':PK': `PROJECT#${teamId}`,
+          ':SK': `TEAM#${teamId}`,
+        },
+      }),
+    );
+
+    if (!res.Items || res.Items.length === 0) {
+      return [];
+    }
+
+    return (res.Items as Project[])
+      .map((item) => {
+        if (!item) return null;
+        return {
+          projectId: item.projectId,
+          name: item.name,
+          description: item.description,
+          creatorId: item.creatorId,
+          teamId: item.teamId,
+          createdAt: item.createdAt,
+          updatedAt: item.updatedAt,
+        } as Project;
+      })
+      .filter((project) => !!project);
+  }
+
+  async getPublicTeams() {
+    const res = await this.db.send(
+      new ScanCommand({
+        TableName: process.env.DYNAMO_TABLE_NAME,
+        FilterExpression:
+          'begins_with(PK, :PK) AND SK = :SK AND privacy = :val1',
+        ExpressionAttributeValues: {
+          ':PK': 'TEAM#',
+          ':SK': 'METADATA',
+          ':val1': 'public',
+        },
+      }),
+    );
+
+    if (!res.Items || res.Items.length === 0) {
+      return [];
+    }
+
+    const teams = await Promise.all(
+      (res.Items as Team[]).map(async (item) => {
+        return await this.getTeamData(item);
+      }),
+    );
+
+    return teams.filter((item) => !!item);
   }
 }
