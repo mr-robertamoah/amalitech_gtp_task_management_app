@@ -327,6 +327,28 @@ export class TeamsService {
     }
 
     // TODO update only fields that are provided and are different from existing data
+    let hasUpdate: boolean = false;
+
+    // Add updateProjectDto fields to team if they exist and are not the same as that of the oldProject
+    if (updateTeamDto.name && updateTeamDto.name !== team.name) {
+      team.name = updateTeamDto.name;
+      hasUpdate = true;
+    }
+    if (
+      updateTeamDto.description &&
+      updateTeamDto.description !== team.description
+    ) {
+      team.description = updateTeamDto.description;
+      hasUpdate = true;
+    }
+    if (updateTeamDto.privacy && updateTeamDto.privacy !== team.privacy) {
+      team.privacy = updateTeamDto.privacy;
+      hasUpdate = true;
+    }
+
+    if (!hasUpdate) {
+      throw new Error('No fields to update');
+    }
 
     await this.db.send(
       new PutCommand({
@@ -335,7 +357,6 @@ export class TeamsService {
           PK: `TEAM#${teamId}`,
           SK: 'METADATA',
           ...team,
-          ...updateTeamDto,
         },
       }),
     );
