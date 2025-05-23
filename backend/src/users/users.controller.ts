@@ -27,6 +27,11 @@ export class UsersController {
     return user;
   }
 
+  @Get('')
+  async getUsers() {
+    return await this.usersService.getUsers();
+  }
+
   @UseGuards(AuthGuard('jwt'))
   @Post(':userId')
   async updateUser(

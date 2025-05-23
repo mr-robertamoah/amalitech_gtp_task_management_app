@@ -3,6 +3,7 @@ import {
   DynamoDBDocumentClient,
   GetCommand,
   PutCommand,
+  QueryCommand,
   ScanCommand,
   UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
@@ -16,6 +17,27 @@ export class UsersService {
   constructor(
     @Inject('DYNAMO_CLIENT') private readonly db: DynamoDBDocumentClient,
   ) {}
+
+  async getUsers(): Promise<User[]> {
+    const res = await this.db.send(
+      new ScanCommand({
+        TableName: process.env.DYNAMO_TABLE_NAME,
+        FilterExpression: 'begins_with(PK, :PK) AND SK = :SK',
+        ExpressionAttributeValues: {
+          ':PK': 'USER#',
+          ':SK': 'METADATA',
+        },
+      }),
+    );
+
+    if (!res.Items || res.Items.length === 0) {
+      return [];
+    }
+
+    return res.Items.map((item) =>
+      this.getUserData(item as User | null),
+    ) as User[];
+  }
 
   async getUserById(userId: string): Promise<User | null> {
     const res = await this.db.send(
@@ -144,6 +166,8 @@ export class UsersService {
     if (!user) {
       return null;
     }
+
+    // TODO update only fields that are provided and are different from existing data
 
     const updateExpr: string[] = [];
     const exprAttrNames: Record<string, string> = {};
