@@ -9,6 +9,7 @@ import { CommentsModule } from './comments/comments.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { NotificationController } from './notification/notification.controller';
 import { DatabaseModule } from './database/database.module';
+import { ProjectsModule } from './projects/projects.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { DatabaseModule } from './database/database.module';
     CommentsModule,
     NotificationsModule,
     DatabaseModule,
+    ProjectsModule,
   ],
   controllers: [AppController, NotificationController],
   providers: [AppService],
