@@ -1070,7 +1070,7 @@ export class TeamsService {
     } as Project;
   }
 
-  private transformObject(obj) {
+  transformObject(obj) {
     const transformedObj = {};
     for (const key in obj) {
       if (typeof obj[key] === 'object' && obj[key] !== null) {
