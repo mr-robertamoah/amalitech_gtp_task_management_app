@@ -5,17 +5,22 @@ import {
   GetCommand,
   PutCommand,
   QueryCommand,
+  UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { Inject, Injectable } from '@nestjs/common';
 import { Team, UserMembership } from './interfaces/teams.interface';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { v4 as uuidv4 } from 'uuid';
 import { UpdateTeamDto } from './dto/update-team.dto';
+import { InviteUsersDto } from './dto/invite-users.dto';
+import { UsersService } from 'src/users/users.service';
+import { RemoveUsersDto } from './dto/remove-users.dto';
 
 @Injectable()
 export class TeamsService {
   constructor(
     @Inject('DYNAMO_CLIENT') private readonly db: DynamoDBDocumentClient,
+    private readonly userService: UsersService,
   ) {}
 
   async getTeamAndMembersById(teamId: string): Promise<Team | null> {
@@ -71,6 +76,35 @@ export class TeamsService {
       isOwner: item.isOwner,
       status: item.status,
     })) as UserMembership[];
+  }
+
+  private async getTeamMembership(
+    teamId: string,
+    userId: string,
+  ): Promise<UserMembership | null> {
+    const res = await this.db.send(
+      new GetCommand({
+        TableName: process.env.DYNAMO_TABLE_NAME,
+        Key: {
+          PK: `TEAM#${teamId}`,
+          SK: `MEMBER#${userId}`,
+        },
+      }),
+    );
+
+    if (!res.Item) {
+      return null;
+    }
+
+    const item = res.Item as UserMembership;
+
+    return {
+      userId: item.userId,
+      role: item.role,
+      joinedAt: item.joinedAt,
+      isOwner: item.isOwner,
+      status: item.status,
+    };
   }
 
   async createTeam(
@@ -266,11 +300,397 @@ export class TeamsService {
     };
   }
 
-//   async inviteUsersToTeam(teamId: string, inviteUsersDto: InviteUsersDto): Promise<Team> {
-//     // Implementation for inviting users to a team
-//   }
+  async inviteUsersToTeam(
+    owner: User,
+    teamId: string,
+    inviteUsersDto: InviteUsersDto,
+  ): Promise<Team | null> {
+    const team: Team | null = await this.getTeamById(teamId);
 
-//   async removeUsersFromTeam(teamId: string, removeUsersDto: RemoveUsersDto): Promise<Team> {
-//     // Implementation for removing users from a team
-//   }
+    if (!team) {
+      return null;
+    }
+
+    if (team.ownerId !== owner.userId) {
+      throw new Error('You are not the owner of this team');
+    }
+
+    const notifiableUsers: User[] = [];
+
+    for (const userId of inviteUsersDto.userIds) {
+      const user: User | null = await this.userService.getUserById(userId);
+
+      if (!user || user.userId == owner.userId) {
+        continue;
+      }
+
+      notifiableUsers.push(user);
+
+      await this.db.send(
+        new PutCommand({
+          TableName: process.env.DYNAMO_TABLE_NAME,
+          Item: {
+            PK: `TEAM#${teamId}`,
+            SK: `MEMBER#${userId}`,
+            userId,
+            isOwner: false,
+            role: 'member',
+            status: 'invited',
+          },
+        }),
+      );
+
+      await this.db.send(
+        new PutCommand({
+          TableName: process.env.DYNAMO_TABLE_NAME,
+          Item: {
+            PK: `USER#${userId}`,
+            SK: `TEAM#${teamId}`,
+            userId,
+            isOwner: false,
+            role: 'member',
+            status: 'invited',
+          },
+        }),
+      );
+    }
+
+    // TODO Notify users about the invitation
+    // for (const user of notifiableUsers) {
+    //   await this.notificationService.sendNotification(
+    //     user.userId,
+    //     `You have been invited to join team ${team.name}`,
+    //   );
+    // }
+
+    return await this.getTeamData(team);
+  }
+
+  async removeUsersFromTeam(
+    owner: User,
+    teamId: string,
+    removeUsersDto: RemoveUsersDto,
+  ): Promise<Team | null> {
+    const team: Team | null = await this.getTeamById(teamId);
+
+    if (!team) {
+      return null;
+    }
+
+    if (team.ownerId !== owner.userId) {
+      throw new Error('You are not the owner of this team');
+    }
+
+    const notifiableUsers: User[] = [];
+
+    for (const userId of removeUsersDto.userIds) {
+      const user: User | null = await this.userService.getUserById(userId);
+
+      if (!user || user.userId == owner.userId) {
+        continue;
+      }
+
+      notifiableUsers.push(user);
+
+      await this.db.send(
+        new DeleteCommand({
+          TableName: process.env.DYNAMO_TABLE_NAME,
+          Key: {
+            PK: `TEAM#${teamId}`,
+            SK: `MEMBER#${userId}`,
+          },
+        }),
+      );
+
+      await this.db.send(
+        new DeleteCommand({
+          TableName: process.env.DYNAMO_TABLE_NAME,
+          Key: {
+            PK: `USER#${userId}`,
+            SK: `TEAM#${teamId}`,
+          },
+        }),
+      );
+    }
+
+    // TODO Notify users about the invitation
+    // for (const user of notifiableUsers) {
+    //   await this.notificationService.sendNotification(
+    //     user.userId,
+    //     `You have been invited to join team ${team.name}`,
+    //   );
+    // }
+
+    return await this.getTeamData(team);
+  }
+
+  async banUsers(
+    owner: User,
+    teamId: string,
+    dto: InviteUsersDto,
+  ): Promise<Team | null> {
+    const team: Team | null = await this.getTeamById(teamId);
+
+    if (!team) {
+      return null;
+    }
+
+    if (team.ownerId !== owner.userId) {
+      throw new Error('You are not the owner of this team');
+    }
+
+    const notifiableUsers: User[] = [];
+
+    for (const userId of dto.userIds) {
+      const userMembership: UserMembership | null =
+        await this.getTeamMembership(teamId, userId);
+      const user: User | null = await this.userService.getUserById(userId);
+
+      if (
+        !user ||
+        !userMembership ||
+        user.userId == owner.userId ||
+        userMembership.status !== 'active'
+      ) {
+        continue;
+      }
+
+      notifiableUsers.push(user);
+
+      await this.updateUserStatus(user.userId, teamId, 'banned');
+    }
+
+    // TODO Notify users about the invitation
+    // for (const user of notifiableUsers) {
+    //   await this.notificationService.sendNotification(
+    //     user.userId,
+    //     `You have been invited to join team ${team.name}`,
+    //   );
+    // }
+
+    return await this.getTeamData(team);
+  }
+
+  async activateUsers(
+    owner: User,
+    teamId: string,
+    dto: InviteUsersDto,
+  ): Promise<Team | null> {
+    const team: Team | null = await this.getTeamById(teamId);
+
+    if (!team) {
+      return null;
+    }
+
+    if (team.ownerId !== owner.userId) {
+      throw new Error('You are not the owner of this team');
+    }
+
+    const notifiableUsers: User[] = [];
+
+    for (const userId of dto.userIds) {
+      const userMembership: UserMembership | null =
+        await this.getTeamMembership(teamId, userId);
+      const user: User | null = await this.userService.getUserById(userId);
+
+      if (
+        !user ||
+        !userMembership ||
+        user.userId == owner.userId ||
+        userMembership.status !== 'banned'
+      ) {
+        continue;
+      }
+
+      notifiableUsers.push(user);
+
+      await this.updateUserStatus(user.userId, teamId, 'active');
+    }
+
+    // TODO Notify users about the invitation
+    // for (const user of notifiableUsers) {
+    //   await this.notificationService.sendNotification(
+    //     user.userId,
+    //     `You have been invited to join team ${team.name}`,
+    //   );
+    // }
+
+    return await this.getTeamData(team);
+  }
+
+  async makeAdmins(
+    owner: User,
+    teamId: string,
+    dto: InviteUsersDto,
+  ): Promise<Team | null> {
+    const team: Team | null = await this.getTeamById(teamId);
+
+    if (!team) {
+      return null;
+    }
+
+    if (team.ownerId !== owner.userId) {
+      throw new Error('You are not the owner of this team');
+    }
+
+    const notifiableUsers: User[] = [];
+
+    for (const userId of dto.userIds) {
+      const userMembership: UserMembership | null =
+        await this.getTeamMembership(teamId, userId);
+      const user: User | null = await this.userService.getUserById(userId);
+
+      if (
+        !user ||
+        !userMembership ||
+        user.userId == owner.userId ||
+        userMembership.role !== 'member' ||
+        userMembership.status !== 'active'
+      ) {
+        continue;
+      }
+
+      notifiableUsers.push(user);
+
+      await this.updateUserRole(user.userId, teamId, 'admin');
+    }
+
+    // TODO Notify users about the invitation
+    // for (const user of notifiableUsers) {
+    //   await this.notificationService.sendNotification(
+    //     user.userId,
+    //     `You have been invited to join team ${team.name}`,
+    //   );
+    // }
+
+    return await this.getTeamData(team);
+  }
+
+  async makeMembers(
+    owner: User,
+    teamId: string,
+    dto: InviteUsersDto,
+  ): Promise<Team | null> {
+    const team: Team | null = await this.getTeamById(teamId);
+
+    if (!team) {
+      return null;
+    }
+
+    if (team.ownerId !== owner.userId) {
+      throw new Error('You are not the owner of this team');
+    }
+
+    const notifiableUsers: User[] = [];
+
+    for (const userId of dto.userIds) {
+      const userMembership: UserMembership | null =
+        await this.getTeamMembership(teamId, userId);
+      const user: User | null = await this.userService.getUserById(userId);
+
+      if (
+        !user ||
+        !userMembership ||
+        user.userId == owner.userId ||
+        userMembership.role !== 'admin' ||
+        userMembership.status !== 'active'
+      ) {
+        continue;
+      }
+
+      notifiableUsers.push(user);
+
+      await this.updateUserRole(user.userId, teamId, 'member');
+    }
+
+    // TODO Notify users about the invitation
+    // for (const user of notifiableUsers) {
+    //   await this.notificationService.sendNotification(
+    //     user.userId,
+    //     `You have been invited to join team ${team.name}`,
+    //   );
+    // }
+
+    return await this.getTeamData(team);
+  }
+
+  private async updateUserStatus(
+    userId: string,
+    teamId: string,
+    status: 'active' | 'banned',
+  ): Promise<void> {
+    await this.db.send(
+      new UpdateCommand({
+        TableName: process.env.DYNAMO_TABLE_NAME,
+        Key: {
+          PK: `TEAM#${teamId}`,
+          SK: `MEMBER#${userId}`,
+        },
+        UpdateExpression: 'SET #status = :status',
+        ExpressionAttributeNames: {
+          '#status': 'status',
+        },
+        ExpressionAttributeValues: {
+          ':status': `${status}`,
+        },
+      }),
+    );
+
+    await this.db.send(
+      new UpdateCommand({
+        TableName: process.env.DYNAMO_TABLE_NAME,
+        Key: {
+          PK: `USER#${userId}`,
+          SK: `TEAM#${teamId}`,
+        },
+        UpdateExpression: 'SET #status = :status',
+        ExpressionAttributeNames: {
+          '#status': 'status',
+        },
+        ExpressionAttributeValues: {
+          ':status': `${status}`,
+        },
+      }),
+    );
+  }
+
+  private async updateUserRole(
+    userId: string,
+    teamId: string,
+    role: 'admin' | 'member',
+  ): Promise<void> {
+    await this.db.send(
+      new UpdateCommand({
+        TableName: process.env.DYNAMO_TABLE_NAME,
+        Key: {
+          PK: `TEAM#${teamId}`,
+          SK: `MEMBER#${userId}`,
+        },
+        UpdateExpression: 'SET #role = :role',
+        ExpressionAttributeNames: {
+          '#role': 'role',
+        },
+        ExpressionAttributeValues: {
+          ':role': `${role}`,
+        },
+      }),
+    );
+
+    await this.db.send(
+      new UpdateCommand({
+        TableName: process.env.DYNAMO_TABLE_NAME,
+        Key: {
+          PK: `USER#${userId}`,
+          SK: `TEAM#${teamId}`,
+        },
+        UpdateExpression: 'SET #role = :role',
+        ExpressionAttributeNames: {
+          '#role': 'role',
+        },
+        ExpressionAttributeValues: {
+          ':role': `${role}`,
+        },
+      }),
+    );
+  }
 }

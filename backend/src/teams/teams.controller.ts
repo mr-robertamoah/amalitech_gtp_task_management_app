@@ -14,6 +14,8 @@ import { CreateTeamDto } from './dto/create-team.dto';
 import { GetUser } from 'src/auth/get-user.decorator';
 import { User } from 'src/users/interfaces/users.interface';
 import { UpdateTeamDto } from './dto/update-team.dto';
+import { InviteUsersDto } from './dto/invite-users.dto';
+import { RemoveUsersDto } from './dto/remove-users.dto';
 
 @Controller('teams')
 export class TeamsController {
@@ -62,25 +64,97 @@ export class TeamsController {
     return await this.teamsService.deleteTeam(owner, teamId);
   }
 
-//   @UseGuards(AuthGuard('jwt'))
-//   @Post(':teamId/invite-users')
-//   async inviteUsersToTeam(@Param('teamId') teamId: string, @Body() inviteUsersDto: InviteUsersDto) {
-//     const team = await this.teamsService.inviteUsersToTeam(teamId, inviteUsersDto);
-//     if (!team) {
-//       throw new NotFoundException('Team not found');
-//     }
-//     return team;
-//   }
+  @UseGuards(AuthGuard('jwt'))
+  @Post(':teamId/invite-users')
+  async inviteUsersToTeam(
+    @Param('teamId') teamId: string,
+    @Body() inviteUsersDto: InviteUsersDto,
+    @GetUser() owner: User,
+  ) {
+    const team = await this.teamsService.inviteUsersToTeam(
+      owner,
+      teamId,
+      inviteUsersDto,
+    );
+    if (!team) {
+      throw new NotFoundException('Team not found');
+    }
+    return team;
+  }
 
-//   @UseGuards(AuthGuard('jwt'))
-//   @Post(':teamId/remove-users')
-//   async removeUsersFromTeam(@Param('teamId') teamId: string, @Body() removeUsersDto: RemoveUsersDto) {
-//     const team = await this.teamsService.removeUsersFromTeam(teamId, removeUsersDto);
-//     if (!team) {
-//       throw new NotFoundException('Team not found');
-//     }
-//     return team;
-//   }
+  @UseGuards(AuthGuard('jwt'))
+  @Post(':teamId/remove-users')
+  async removeUsersFromTeam(
+    @Param('teamId') teamId: string,
+    @Body() removeUsersDto: RemoveUsersDto,
+    @GetUser() owner: User,
+  ) {
+    const team = await this.teamsService.removeUsersFromTeam(
+      owner,
+      teamId,
+      removeUsersDto,
+    );
+    if (!team) {
+      throw new NotFoundException('Team not found');
+    }
+    return team;
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post(':teamId/ban-members')
+  async banUsers(
+    @Param('teamId') teamId: string,
+    @Body() dto: InviteUsersDto,
+    @GetUser() owner: User,
+  ) {
+    const team = await this.teamsService.banUsers(owner, teamId, dto);
+    if (!team) {
+      throw new NotFoundException('Team not found');
+    }
+    return team;
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post(':teamId/activate-members')
+  async activateUsers(
+    @Param('teamId') teamId: string,
+    @Body() dto: InviteUsersDto,
+    @GetUser() owner: User,
+  ) {
+    const team = await this.teamsService.activateUsers(owner, teamId, dto);
+    if (!team) {
+      throw new NotFoundException('Team not found');
+    }
+    return team;
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post(':teamId/make-admins')
+  async makeAdmins(
+    @Param('teamId') teamId: string,
+    @Body() dto: InviteUsersDto,
+    @GetUser() owner: User,
+  ) {
+    const team = await this.teamsService.makeAdmins(owner, teamId, dto);
+    if (!team) {
+      throw new NotFoundException('Team not found');
+    }
+    return team;
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post(':teamId/make-members')
+  async makeMembers(
+    @Param('teamId') teamId: string,
+    @Body() dto: InviteUsersDto,
+    @GetUser() owner: User,
+  ) {
+    const team = await this.teamsService.makeMembers(owner, teamId, dto);
+    if (!team) {
+      throw new NotFoundException('Team not found');
+    }
+    return team;
+  }
 
 //   @UseGuards(AuthGuard('jwt'))
 //   @Post(':teamId/change-role')

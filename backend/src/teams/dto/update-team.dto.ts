@@ -1,6 +1,6 @@
 import { IsIn, IsOptional, IsString } from 'class-validator';
 
-// Create CreateTeamDto
+// Create UpdateTeamDto
 export class UpdateTeamDto {
   @IsString()
   @IsOptional()
