@@ -20,15 +20,6 @@ import { ChangeTaskStatusDto } from './dto/change-task-status.dto';
 export class TasksController {
   constructor(private tasksService: TasksService) {}
 
-//   @UseGuards(AuthGuard('jwt'))
-//   @Get(':taskId/comments')
-//   async getTaskComments(
-//     @Param('taskId') taskId: string,
-//     @GetUser() user: User,
-//   ) {
-//     return await this.tasksService.getTaskComments(user, taskId);
-//   }
-
   @UseGuards(AuthGuard('jwt'))
   @Get(':taskId')
   async getTask(@Param('taskId') taskId: string, @GetUser() user: User) {

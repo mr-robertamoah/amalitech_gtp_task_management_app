@@ -126,8 +126,6 @@ export class TeamsService {
       return null;
     }).filter((item) => !!item);
 
-    console.log(res.Items, teamIds);
-
     if (teamIds.length === 0) {
       return [];
     }
@@ -145,8 +143,6 @@ export class TeamsService {
       }),
     );
 
-    console.log(batchGetItemRes);
-
     if (!batchGetItemRes.Responses) {
       return [];
     }
@@ -154,7 +150,6 @@ export class TeamsService {
     const teams = batchGetItemRes.Responses[
       process.env.DYNAMO_TABLE_NAME || ''
     ].map((item) => {
-      console.log(item);
       if (!item.SK?.S) {
         return null;
       }

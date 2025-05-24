@@ -12,11 +12,10 @@ import { User } from 'src/users/interfaces/users.interface';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { TeamsService } from 'src/teams/teams.service';
 import { ProjectsService } from 'src/projects/projects.service';
-import { Team, UserMembership } from 'src/teams/interfaces/teams.interface';
+import { UserMembership } from 'src/teams/interfaces/teams.interface';
 import { v4 as uuidv4 } from 'uuid';
 import { Task } from './interfaces/tasks.interface';
 import { UpdateTaskDto } from './dto/update-task.dto';
-import { InviteUsersDto } from 'src/teams/dto/invite-users.dto';
 import { ChangeTaskStatusDto } from './dto/change-task-status.dto';
 
 @Injectable()
@@ -43,8 +42,6 @@ export class TasksService {
     }
 
     const task = res.Items[0];
-
-    console.log('task', task);
 
     return this.getTaskData(task as Task);
   }
