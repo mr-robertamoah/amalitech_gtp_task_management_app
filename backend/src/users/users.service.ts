@@ -167,7 +167,19 @@ export class UsersService {
       return null;
     }
 
-    // TODO update only fields that are provided and are different from existing data
+    // ensure username and email are not already taken
+    if (updates.username) {
+      const existingUser = await this.getUserByUsername(updates.username);
+      if (existingUser && existingUser.userId !== userId) {
+        throw new Error('Username already taken');
+      }
+    }
+    if (updates.email) {
+      const existingUser = await this.getUserByEmail(updates.email);
+      if (existingUser && existingUser.userId !== userId) {
+        throw new Error('Email already taken');
+      }
+    }
 
     const updateExpr: string[] = [];
     const exprAttrNames: Record<string, string> = {};
