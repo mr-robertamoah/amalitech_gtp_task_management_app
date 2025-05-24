@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { logout } from '../app/store';
+import { logout } from '../features/user/userSlice';
 import { useNavigate } from 'react-router-dom';
 
 export default function Navigation() {
@@ -10,7 +10,7 @@ export default function Navigation() {
 
   const handleLogout = () => {
     dispatch(logout());
-    navigate('/login');
+    navigate('/', { replace: true });
   };
 
   return (
