@@ -479,6 +479,14 @@ export class TeamsService {
         continue;
       }
 
+      // Check if user is already a member of the team
+      const userMembership: UserMembership | null =
+        await this.getTeamMembership(teamId, userId);
+
+      if (userMembership) {
+        continue;
+      }
+
       notifiableUsers.push(user);
 
       await this.db.send(
