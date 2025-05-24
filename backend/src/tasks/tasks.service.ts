@@ -473,6 +473,8 @@ export class TasksService {
       throw new Error('No fields to update');
     }
 
+    this.projectsService.validateDates(task.startAt, task.endAt);
+
     task.updatedAt = new Date().toISOString();
 
     await this.db.send(

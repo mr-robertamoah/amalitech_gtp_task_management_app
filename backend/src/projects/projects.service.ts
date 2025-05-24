@@ -304,6 +304,23 @@ export class ProjectsService {
       if (startDate > endDate) {
         throw new Error('Start date cannot be after end date');
       }
+
+      // Dates should be at least 1 day apart
+      const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      if (diffDays < 1) {
+        throw new Error('Dates should be at least 1 day apart');
+      }
+
+      // Dates should be in the future
+      const currentDate = new Date();
+      if (startDate < currentDate || endDate < currentDate) {
+        throw new Error('Dates should be in the future');
+      }
+    }
+
+    if (!startAt && !endAt) {
+      return;
     }
 
     throw new Error(
