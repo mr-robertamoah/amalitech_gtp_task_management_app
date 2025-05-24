@@ -6,6 +6,7 @@ import Profile from './pages/Profile';
 import Team from './pages/Team';
 import Project from './pages/Project';
 import Navigation from './components/Navigation';
+import AlertContainer from './components/AlertContainer';
 import { useSelector } from 'react-redux';
 import './App.css';
 
@@ -16,6 +17,7 @@ function App() {
     <Router>
       <div className="flex flex-col min-h-screen w-full">
         <Navigation />
+        <AlertContainer />
         <div className="flex-grow w-full">
           <Routes>
             <Route path="/" element={<Home />} />
@@ -28,7 +30,7 @@ function App() {
               element={!user ? <Register /> : <Navigate to="/" replace />}
             />
             <Route path="/profile" element={<Profile />} />
-            <Route path="/team" element={<Team />} />
+            <Route path="/team/:teamId" element={<Team />} />
             <Route path="/project/:projectId" element={<Project />} />
           </Routes>
         </div>
