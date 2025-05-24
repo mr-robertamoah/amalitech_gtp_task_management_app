@@ -16,6 +16,7 @@ export interface Team {
   teamId: string;
   name: string;
   ownerId: string;
+  ownerUsername?: string;
   description: string;
   logoUrl?: string;
   privacy: 'public' | 'private';
