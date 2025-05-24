@@ -9,6 +9,7 @@ export interface Task {
   endAt?: string;
   creator: UserSafe;
   assignee?: UserSafe;
+  assigner?: UserSafe;
   comments?: Comment[];
   tags?: string[];
   subtasks?: Task[];

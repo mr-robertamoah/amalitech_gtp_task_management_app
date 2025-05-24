@@ -265,7 +265,9 @@ export class TeamsService {
           role: 'admin',
           joinedAt: date,
           status: 'active',
-          details: this.getUserSafeData(owner),
+          details: this.removeKeysWithUndefinedValue(
+            this.getUserSafeData(owner),
+          ),
         },
       }),
     );
@@ -281,10 +283,10 @@ export class TeamsService {
           role: 'admin',
           joinedAt: date,
           status: 'active',
-          details: {
+          details: this.removeKeysWithUndefinedValue({
             ...createTeamDto,
             teamId,
-          },
+          }),
         },
       }),
     );
@@ -444,6 +446,12 @@ export class TeamsService {
     };
   }
 
+  removeKeysWithUndefinedValue(obj): Record<string, unknown> | UserSafe | Team | undefined {
+    return Object.fromEntries(
+      Object.entries(obj).filter(([_, value]) => value !== undefined),
+    );
+  }
+
   async inviteUsersToTeam(
     owner: User,
     teamId: string,
@@ -480,7 +488,9 @@ export class TeamsService {
             isOwner: false,
             role: 'member',
             status: 'invited',
-            details: this.getUserSafeData(user),
+            details: this.removeKeysWithUndefinedValue(
+              this.getUserSafeData(user),
+            ),
           },
         }),
       );
@@ -495,7 +505,9 @@ export class TeamsService {
             isOwner: false,
             role: 'member',
             status: 'invited',
-            details: this.getTeamSafeData(team),
+            details: this.removeKeysWithUndefinedValue(
+              this.getTeamSafeData(team),
+            ),
           },
         }),
       );

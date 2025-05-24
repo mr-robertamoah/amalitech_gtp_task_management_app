@@ -8,7 +8,7 @@ import {
   UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { Inject, Injectable } from '@nestjs/common';
-import { User } from 'src/users/interfaces/users.interface';
+import { User, UserSafe } from 'src/users/interfaces/users.interface';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { TeamsService } from 'src/teams/teams.service';
 import { ProjectsService } from 'src/projects/projects.service';
@@ -17,6 +17,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { Task } from './interfaces/tasks.interface';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { ChangeTaskStatusDto } from './dto/change-task-status.dto';
+import { AssignTaskDto } from './dto/assign-task.dto';
+import { UsersService } from 'src/users/users.service';
 
 @Injectable()
 export class TasksService {
@@ -24,7 +26,207 @@ export class TasksService {
     @Inject('DYNAMO_CLIENT') private readonly db: DynamoDBDocumentClient,
     private readonly teamsService: TeamsService,
     private readonly projectsService: ProjectsService,
+    private readonly usersService: UsersService,
   ) {}
+
+  async assignTaskToMember(user: User, taskId: string, dto: AssignTaskDto) {
+    const assignee = await this.usersService.getUserById(dto.assigneeId);
+
+    if (!assignee) {
+      throw new Error('Assignee not found');
+    }
+
+    const task = await this.getTaskById(taskId);
+
+    if (!task) {
+      return null;
+    }
+
+    const project = await this.projectsService.getProjectById(task.projectId);
+
+    if (!project) {
+      throw new Error('Project not found');
+    }
+
+    if (this.projectsService.hasProjectEnded(project)) {
+      throw new Error('Project has ended');
+    }
+
+    const team = await this.teamsService.getTeamById(project.teamId);
+
+    if (!team) {
+      throw new Error('Team not found');
+    }
+
+    const teamMembership: UserMembership | null =
+      await this.teamsService.getTeamMembership(team.teamId, user.userId);
+
+    if (!teamMembership || teamMembership.status !== 'active') {
+      throw new Error('You are not an active member of this team');
+    }
+
+    const assigneeMembership: UserMembership | null =
+      await this.teamsService.getTeamMembership(team.teamId, assignee.userId);
+
+    if (!assigneeMembership || assigneeMembership.status !== 'active') {
+      throw new Error('Assignee is not an active member of this team');
+    }
+
+    let canAssignTask: boolean = false;
+
+    // Can assign a task to any member if you are team owner or project owner or task creator
+    if (
+      teamMembership?.isOwner ||
+      teamMembership?.userId === task.creator.userId ||
+      teamMembership?.userId === project.creator.userId
+    ) {
+      canAssignTask = true;
+    }
+
+    // Can assign task to users with member roles if you are team admin
+    if (
+      teamMembership?.role === 'admin' &&
+      assigneeMembership?.role === 'member'
+    ) {
+      canAssignTask = true;
+    }
+
+    // Can assign a task to yourself if you a team admin
+    if (
+      teamMembership?.role === 'admin' &&
+      teamMembership?.userId === assignee.userId
+    ) {
+      canAssignTask = true;
+    }
+
+    if (!canAssignTask) {
+      throw new Error(
+        "You are not allowed to assign a task for this team's project",
+      );
+    }
+
+    task.assignee = this.teamsService.removeKeysWithUndefinedValue(
+      this.teamsService.getUserSafeData(assignee),
+    ) as UserSafe;
+    task.updatedAt = new Date().toISOString();
+    task.status = 'pending';
+    task.assigner = this.teamsService.removeKeysWithUndefinedValue(
+      this.teamsService.getUserSafeData(user),
+    ) as UserSafe;
+    delete task.startAt;
+    delete task.endAt;
+
+    await this.db.send(
+      new PutCommand({
+        TableName: process.env.DYNAMO_TABLE_NAME,
+        Item: {
+          PK: `TASK#${taskId}`,
+          SK: `PROJECT#${task.projectId}`,
+          ...task,
+        },
+      }),
+    );
+
+    // TODO notify assignee
+    // TODO notify team owner if not changed by them
+    // TODO notify task creator if not changed by them
+    // TODO notify project owner if not changed by them
+
+    return this.getTaskData(task);
+  }
+
+  async removeAssigneeFromTask(user: User, taskId: string) {
+    const task = await this.getTaskById(taskId);
+
+    if (!task) {
+      return null;
+    }
+
+    const project = await this.projectsService.getProjectById(task.projectId);
+
+    if (!project) {
+      throw new Error('Project not found');
+    }
+
+    if (this.projectsService.hasProjectEnded(project)) {
+      throw new Error('Project has ended');
+    }
+
+    const team = await this.teamsService.getTeamById(project.teamId);
+
+    if (!team) {
+      throw new Error('Team not found');
+    }
+
+    const teamMembership: UserMembership | null =
+      await this.teamsService.getTeamMembership(team.teamId, user.userId);
+
+    if (!teamMembership || teamMembership.status !== 'active') {
+      throw new Error('You are not an active member of this team');
+    }
+
+    const assigneeMembership: UserMembership | null =
+      await this.teamsService.getTeamMembership(
+        team.teamId,
+        task.assignee?.userId ?? null,
+      );
+
+    let canUnassignTask: boolean = false;
+
+    // Can unassign a task from any member if you are team owner or project owner or task creator
+    if (
+      teamMembership?.isOwner ||
+      teamMembership?.userId === task.creator.userId ||
+      teamMembership?.userId === project.creator.userId
+    ) {
+      canUnassignTask = true;
+    }
+
+    // Can unassign task from users with member roles if you are team admin
+    if (
+      teamMembership?.role === 'admin' &&
+      assigneeMembership?.role === 'member'
+    ) {
+      canUnassignTask = true;
+    }
+
+    // Can unassign a task from yourself if you a team admin
+    if (
+      teamMembership?.role === 'admin' &&
+      teamMembership?.userId === task.assignee?.userId
+    ) {
+      canUnassignTask = true;
+    }
+
+    if (!canUnassignTask) {
+      throw new Error('You are not allowed to unassign this task');
+    }
+
+    delete task.assignee;
+    delete task.assigner;
+    task.updatedAt = new Date().toISOString();
+    task.status = 'pending';
+    delete task.startAt;
+    delete task.endAt;
+
+    await this.db.send(
+      new PutCommand({
+        TableName: process.env.DYNAMO_TABLE_NAME,
+        Item: {
+          PK: `TASK#${taskId}`,
+          SK: `PROJECT#${task.projectId}`,
+          ...task,
+        },
+      }),
+    );
+
+    // TODO notify assignee
+    // TODO notify team owner if not changed by them
+    // TODO notify task creator if not changed by them
+    // TODO notify project owner if not changed by them
+
+    return this.getTaskData(task);
+  }
 
   async getTaskById(taskId: string) {
     const res = await this.db.send(
@@ -430,6 +632,8 @@ export class TasksService {
         description: task.description,
         status: task.status,
         projectId: task.projectId,
+        assigner: task.assigner,
+        assignee: task.assignee,
         teamId: task.teamId,
         createdAt: task.createdAt,
         updatedAt: task.updatedAt,
@@ -443,6 +647,7 @@ export class TasksService {
       projectId: task.projectId?.S,
       creator: this.teamsService.transformObject(task.creator?.M),
       assignee: this.teamsService.transformObject(task.assignee?.M),
+      assigner: this.teamsService.transformObject(task.assigner?.M),
       teamId: task.teamId?.S,
       createdAt: task.createdAt?.S,
       updatedAt: task.updatedAt?.S,

@@ -15,6 +15,7 @@ import { GetUser } from 'src/auth/get-user.decorator';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { ChangeTaskStatusDto } from './dto/change-task-status.dto';
+import { AssignTaskDto } from './dto/assign-task.dto';
 
 @Controller('tasks')
 export class TasksController {
@@ -56,6 +57,32 @@ export class TasksController {
     @Body() dto: ChangeTaskStatusDto,
   ) {
     return await this.tasksService.changeTaskStatus(user, taskId, dto);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post(':taskId/assign')
+  async assignTask(
+    @Param('taskId') taskId: string,
+    @Body() dto: AssignTaskDto,
+    @GetUser() user: User,
+  ) {
+    const task = await this.tasksService.assignTaskToMember(user, taskId, dto);
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+    return task;
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post(':taskId/unassign')
+  async unassignTask(@Param('taskId') taskId: string, @GetUser() user: User) {
+    const task = await this.tasksService.removeAssigneeFromTask(user, taskId);
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+    return task;
   }
 
   @UseGuards(AuthGuard('jwt'))
