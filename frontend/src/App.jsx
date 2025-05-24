@@ -7,8 +7,10 @@ import Team from './pages/Team';
 import Project from './pages/Project';
 import Navigation from './components/Navigation';
 import AlertContainer from './components/AlertContainer';
+import ProtectedTeamRoute from './components/ProtectedTeamRoute';
 import { useSelector } from 'react-redux';
 import './App.css';
+import NotFound from './pages/NotFound';
 
 function App() {
   const user = useSelector((state) => state.user.user);
@@ -30,8 +32,16 @@ function App() {
               element={!user ? <Register /> : <Navigate to="/" replace />}
             />
             <Route path="/profile" element={<Profile />} />
-            <Route path="/team/:teamId" element={<Team />} />
+            <Route 
+                path="/team/:teamId" 
+                element={
+                  <ProtectedTeamRoute>
+                    <Team />
+                  </ProtectedTeamRoute>
+                } 
+              />
             <Route path="/project/:projectId" element={<Project />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </div>
       </div>

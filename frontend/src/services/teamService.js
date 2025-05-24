@@ -13,6 +13,15 @@ export const teamService = {
     }
   },
 
+  getTeamById: async (teamId) => {
+    try {
+      const response = await axios.get(`/teams/${teamId}`);
+      return response.data;
+    } catch (error) {
+      showErrorAlert(error.response?.data?.message || 'Failed to fetch team details');
+      throw error;
+    }
+  },
   // Get public teams
   getPublicTeams: async () => {
     try {
