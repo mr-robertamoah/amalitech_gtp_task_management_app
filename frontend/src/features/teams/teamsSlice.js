@@ -47,6 +47,9 @@ const teamsSlice = createSlice({
     },
     createTeam(state, action) {
       state.userTeams.push(action.payload);
+      if (action.payload.privacy === 'public') {
+        state.publicTeams.push(action.payload);
+      }
     },
     updateTeam(state, action) {
       // Update in userTeams if it exists there

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import TeamCard from '../components/TeamCard';
+import CreateTeamModal from '../components/CreateTeamModal';
 import { 
   fetchTeamsStart, 
   fetchUserTeamsSuccess, 
@@ -8,7 +9,6 @@ import {
   fetchTeamsFailure 
 } from '../features/teams/teamsSlice';
 import { teamService } from '../services/teamService';
-import { showSuccessAlert } from '../utils/alertUtils';
 
 export default function Home() {
   const dispatch = useDispatch();
@@ -19,6 +19,7 @@ export default function Home() {
   const [publicTeamsLoading, setPublicTeamsLoading] = useState(false);
   const [hasLoadedPublicTeams, setHasLoadedPublicTeams] = useState(false);
   const [hasLoadedUserTeams, setHasLoadedUserTeams] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   // Fetch public teams only if not already loaded
   useEffect(() => {
@@ -71,9 +72,8 @@ export default function Home() {
     fetchUserTeams();
   }, [dispatch, user, userTeams.length, hasLoadedUserTeams]);
 
-  const handleCreateTeam = async () => {
-    // This would open a modal or navigate to team creation page
-    showSuccessAlert('Team creation functionality will be implemented soon!');
+  const handleCreateTeam = () => {
+    setIsCreateModalOpen(true);
   };
 
   return (
@@ -112,7 +112,7 @@ export default function Home() {
           ) : userTeams.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {userTeams.map(team => (
-                <TeamCard key={team.id} team={team} isUserMember={true} />
+                <TeamCard key={team.teamId} team={team} showMembership={true} />
               ))}
             </div>
           ) : (
@@ -138,9 +138,18 @@ export default function Home() {
           </div>
         ) : publicTeams.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {publicTeams.map(team => (
-              <TeamCard key={team.id} team={team} isUserMember={false} />
-            ))}
+            {publicTeams.map(team => {
+              // Check if this team is already in the user's teams
+              const isUserTeam = user && userTeams.some(userTeam => userTeam.teamId === team.teamId);
+              return (
+                <TeamCard 
+                  key={team.teamId} 
+                  team={team} 
+                  showMembership={false} 
+                  canJoin={!isUserTeam && user}
+                />
+              );
+            })}
           </div>
         ) : (
           <div className="bg-gray-50 rounded-lg p-8 text-center">
@@ -148,6 +157,12 @@ export default function Home() {
           </div>
         )}
       </section>
+
+      {/* Create Team Modal */}
+      <CreateTeamModal 
+        isOpen={isCreateModalOpen} 
+        onClose={() => setIsCreateModalOpen(false)} 
+      />
     </div>
   );
 }
