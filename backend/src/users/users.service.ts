@@ -70,6 +70,26 @@ export class UsersService {
     return null;
   }
 
+  async searchUsers(userOrUsername: string): Promise<User[]> {
+    const res = await this.db.send(
+      new ScanCommand({
+        TableName: process.env.DYNAMO_TABLE_NAME,
+        FilterExpression: 'contains(username, :val1) OR contains(email, :val2)',
+        ExpressionAttributeValues: {
+          ':val1': userOrUsername,
+          ':val2': userOrUsername,
+        },
+      }),
+    );
+
+    if (!res.Items || res.Items.length == 0) {
+      return [];
+    }
+    return res.Items.map((item) =>
+      this.getUserData(item as User | null),
+    ) as User[];
+  }
+
   async getUserByUsernameOrEmail(data: {
     username?: string;
     email?: string;

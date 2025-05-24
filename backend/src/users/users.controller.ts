@@ -6,6 +6,7 @@ import {
   NotFoundException,
   Param,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
@@ -16,6 +17,16 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 @Controller('users')
 export class UsersController {
   constructor(private usersService: UsersService) {}
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('search/')
+  async searchUsers(@Query('q') userOrUsername: string) {
+    const user = await this.usersService.searchUsers(userOrUsername);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
+  }
 
   @UseGuards(AuthGuard('jwt'))
   @Get(':userId')

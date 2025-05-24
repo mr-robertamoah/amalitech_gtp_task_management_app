@@ -53,5 +53,82 @@ export const teamService = {
       showErrorAlert(error.response?.data?.message || 'Failed to create team');
       throw error;
     }
+  },
+
+  // Update team information
+  updateTeam: async (teamId, updateData) => {
+    try {
+      const response = await axios.patch(`/teams/${teamId}`, updateData);
+      return response.data;
+    } catch (error) {
+      showErrorAlert(error.response?.data?.message || 'Failed to update team');
+      throw error;
+    }
+  },
+
+  // Delete a team
+  deleteTeam: async (teamId) => {
+    try {
+      const response = await axios.delete(`/teams/${teamId}`);
+      return response.data;
+    } catch (error) {
+      showErrorAlert(error.response?.data?.message || 'Failed to delete team');
+      throw error;
+    }
+  },
+
+  // Invite users to team
+  inviteUsersToTeam: async (teamId, inviteData) => {
+    try {
+      const response = await axios.post(`/teams/${teamId}/invite-users`, inviteData);
+      return response.data;
+    } catch (error) {
+      showErrorAlert(error.response?.data?.message || 'Failed to invite users');
+      throw error;
+    }
+  },
+
+  // Update member role to admin
+  makeAdmin: async (teamId, userId) => {
+    try {
+      const response = await axios.patch(`/teams/${teamId}/members/${userId}/role`, { role: 'admin' });
+      return response.data;
+    } catch (error) {
+      showErrorAlert(error.response?.data?.message || 'Failed to update member role');
+      throw error;
+    }
+  },
+
+  // Update member role to member
+  makeMember: async (teamId, userId) => {
+    try {
+      const response = await axios.patch(`/teams/${teamId}/members/${userId}/role`, { role: 'member' });
+      return response.data;
+    } catch (error) {
+      showErrorAlert(error.response?.data?.message || 'Failed to update member role');
+      throw error;
+    }
+  },
+
+  // Ban a member
+  banMember: async (teamId, userId) => {
+    try {
+      const response = await axios.patch(`/teams/${teamId}/members/${userId}/status`, { status: 'banned' });
+      return response.data;
+    } catch (error) {
+      showErrorAlert(error.response?.data?.message || 'Failed to ban member');
+      throw error;
+    }
+  },
+
+  // Remove a member
+  removeMember: async (teamId, userId) => {
+    try {
+      const response = await axios.delete(`/teams/${teamId}/members/${userId}`);
+      return response.data;
+    } catch (error) {
+      showErrorAlert(error.response?.data?.message || 'Failed to remove member');
+      throw error;
+    }
   }
 };
