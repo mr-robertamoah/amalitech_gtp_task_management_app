@@ -153,13 +153,16 @@ export class TeamsService {
       if (!item.SK?.S) {
         return null;
       }
+      const membership = res.Items?.find((i) => i.SK === item.PK?.S);
+
       return {
         teamId: item.PK?.S?.split('#')[1],
         name: item.name?.S,
         ownerId: item.ownerId?.S,
         description: item.description?.S,
         createdAt: item.createdAt?.S,
-      } as Team;
+        role: membership?.role,
+      };
     });
 
     return teams;
@@ -1047,7 +1050,17 @@ export class TeamsService {
       }),
     );
 
-    return teams.filter((item) => !!item);
+    return teams
+      .filter((item) => !!item)
+      .map((team) => ({
+        teamId: team.teamId,
+        name: team.name,
+        description: team.description,
+        ownerId: team.ownerId,
+        privacy: team.privacy,
+        membersCount: team.members.length,
+        createdAt: team.createdAt || new Date().toISOString(),
+      }));
   }
 
   getProjectData(project): Project | null {
