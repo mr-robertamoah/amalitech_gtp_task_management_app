@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../features/user/userSlice';
 import { useNavigate } from 'react-router-dom';
@@ -7,6 +7,11 @@ export default function Navigation() {
   const user = useSelector((state) => state.user.user);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Check if current path is a team or project page
+  const isTeamPage = location.pathname.includes('/team/');
+  const isProjectPage = location.pathname.includes('/project/');
 
   const handleLogout = () => {
     dispatch(logout());
@@ -20,8 +25,16 @@ export default function Navigation() {
         {user && (
           <>
             <Link to="/profile" className="hover:underline">Profile</Link>
-            <Link to="/team" className="hover:underline">Team</Link>
-            <Link to="/project" className="hover:underline">Project</Link>
+            
+            {/* Only show Team label when on team pages */}
+            {isTeamPage && (
+              <span className="px-2 py-1 bg-gray-700 rounded cursor-default">Team</span>
+            )}
+            
+            {/* Only show Project label when on project pages */}
+            {isProjectPage && (
+              <span className="px-2 py-1 bg-gray-700 rounded cursor-default">Project</span>
+            )}
           </>
         )}
       </div>
