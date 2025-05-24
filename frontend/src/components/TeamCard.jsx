@@ -16,7 +16,7 @@ const TeamCard = ({ team, isUserMember = false }) => {
         
         <div className="flex justify-between items-center">
           <Link 
-            to={`/team/${team.id}`} 
+            to={`/team/${team.teamId}`} 
             className="text-blue-600 hover:text-blue-800 text-sm font-medium"
           >
             View Details

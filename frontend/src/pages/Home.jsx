@@ -1,72 +1,80 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import TeamCard from '../components/TeamCard';
-import { fetchTeamsStart, fetchUserTeamsSuccess, fetchPublicTeamsSuccess, fetchTeamsFailure } from '../features/teams/teamsSlice';
+import { 
+  fetchTeamsStart, 
+  fetchUserTeamsSuccess, 
+  fetchPublicTeamsSuccess, 
+  fetchTeamsFailure 
+} from '../features/teams/teamsSlice';
+import { teamService } from '../services/teamService';
+import { showSuccessAlert } from '../utils/alertUtils';
 
 export default function Home() {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user.user);
-  const { userTeams, publicTeams, loading } = useSelector((state) => state.teams);
+  const { userTeams, publicTeams } = useSelector((state) => state.teams);
   
+  const [userTeamsLoading, setUserTeamsLoading] = useState(false);
+  const [publicTeamsLoading, setPublicTeamsLoading] = useState(false);
+  const [hasLoadedPublicTeams, setHasLoadedPublicTeams] = useState(false);
+  const [hasLoadedUserTeams, setHasLoadedUserTeams] = useState(false);
+
+  // Fetch public teams only if not already loaded
   useEffect(() => {
-    // This would be replaced with actual API calls in a real implementation
-    const loadTeams = () => {
+    const fetchPublicTeams = async () => {
+      // Skip if we already have public teams data or if we've already attempted to load them
+      if (publicTeams.length > 0 || hasLoadedPublicTeams) {
+        return;
+      }
+      
+      setPublicTeamsLoading(true);
       dispatch(fetchTeamsStart());
       
-      // Simulate API calls with static data
-      const myTeamsData = [
-        {
-          id: '1',
-          name: 'Development Team',
-          description: 'Frontend and backend development team working on the main product.',
-          memberCount: 8,
-          projectCount: 3
-        },
-        {
-          id: '2',
-          name: 'Design Team',
-          description: 'UI/UX designers creating beautiful interfaces for our products.',
-          memberCount: 5,
-          projectCount: 2
-        }
-      ];
-      
-      const publicTeamsData = [
-        {
-          id: '3',
-          name: 'Marketing Team',
-          description: 'Responsible for all marketing activities and campaigns.',
-          memberCount: 6,
-          projectCount: 4
-        },
-        {
-          id: '4',
-          name: 'QA Team',
-          description: 'Quality assurance team ensuring product reliability.',
-          memberCount: 4,
-          projectCount: 2
-        },
-        {
-          id: '5',
-          name: 'DevOps Team',
-          description: 'Managing infrastructure and deployment pipelines.',
-          memberCount: 3,
-          projectCount: 5
-        }
-      ];
-      
       try {
-        if (user) {
-          dispatch(fetchUserTeamsSuccess(myTeamsData));
-        }
-        dispatch(fetchPublicTeamsSuccess(publicTeamsData));
+        const data = await teamService.getPublicTeams();
+        dispatch(fetchPublicTeamsSuccess(data));
       } catch (error) {
         dispatch(fetchTeamsFailure(error.message));
+      } finally {
+        setPublicTeamsLoading(false);
+        setHasLoadedPublicTeams(true);
       }
     };
     
-    loadTeams();
-  }, [dispatch, user]);
+    fetchPublicTeams();
+  }, [dispatch, publicTeams.length, hasLoadedPublicTeams]);
+
+  // Fetch user teams if user is logged in and teams not already loaded
+  useEffect(() => {
+    if (!user) return;
+    
+    const fetchUserTeams = async () => {
+      // Skip if we already have user teams data or if we've already attempted to load them
+      if (userTeams.length > 0 || hasLoadedUserTeams) {
+        return;
+      }
+      
+      setUserTeamsLoading(true);
+      
+      try {
+        const data = await teamService.getUserTeams();
+        dispatch(fetchUserTeamsSuccess(data));
+      } catch (error) {
+        dispatch(fetchTeamsFailure(error.message));
+      } finally {
+        setUserTeamsLoading(false);
+        setHasLoadedUserTeams(true);
+      }
+    };
+    
+    fetchUserTeams();
+  }, [dispatch, user, userTeams.length, hasLoadedUserTeams]);
+
+  const handleCreateTeam = async () => {
+    // This would open a modal or navigate to team creation page
+    showSuccessAlert('Team creation functionality will be implemented soon!');
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -85,22 +93,23 @@ export default function Home() {
         )}
       </section>
 
-      {loading && (
-        <div className="flex justify-center items-center py-10">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-      )}
-
-      {!loading && user && (
+      {user && (
         <section className="mb-12">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
             <h2 className="text-2xl font-semibold text-gray-800">My Teams</h2>
-            <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm">
+            <button 
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
+              onClick={handleCreateTeam}
+            >
               Create New Team
             </button>
           </div>
           
-          {userTeams.length > 0 ? (
+          {userTeamsLoading ? (
+            <div className="flex justify-center items-center py-10">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+          ) : userTeams.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {userTeams.map(team => (
                 <TeamCard key={team.id} team={team} isUserMember={true} />
@@ -109,7 +118,10 @@ export default function Home() {
           ) : (
             <div className="bg-gray-50 rounded-lg p-8 text-center">
               <p className="text-gray-600 mb-4">You haven't joined any teams yet.</p>
-              <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+              <button 
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                onClick={handleCreateTeam}
+              >
                 Create Your First Team
               </button>
             </div>
@@ -117,23 +129,25 @@ export default function Home() {
         </section>
       )}
 
-      {!loading && (
-        <section>
-          <h2 className="text-2xl font-semibold text-gray-800 mb-6">Public Teams</h2>
-          
-          {publicTeams.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {publicTeams.map(team => (
-                <TeamCard key={team.id} team={team} isUserMember={false} />
-              ))}
-            </div>
-          ) : (
-            <div className="bg-gray-50 rounded-lg p-8 text-center">
-              <p className="text-gray-600">No public teams available at the moment.</p>
-            </div>
-          )}
-        </section>
-      )}
+      <section>
+        <h2 className="text-2xl font-semibold text-gray-800 mb-6">Public Teams</h2>
+        
+        {publicTeamsLoading ? (
+          <div className="flex justify-center items-center py-10">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
+        ) : publicTeams.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {publicTeams.map(team => (
+              <TeamCard key={team.id} team={team} isUserMember={false} />
+            ))}
+          </div>
+        ) : (
+          <div className="bg-gray-50 rounded-lg p-8 text-center">
+            <p className="text-gray-600">No public teams available at the moment.</p>
+          </div>
+        )}
+      </section>
     </div>
   );
 }
