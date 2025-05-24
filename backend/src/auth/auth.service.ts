@@ -14,8 +14,8 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async validateUser(username: string, password: string): Promise<User | null> {
-    const user = await this.usersService.getUserByUsername(username);
+  async validateUser(email: string, password: string): Promise<User | null> {
+    const user = await this.usersService.getUserByEmail(email);
     // Check if the user exists and if the password matches
     if (
       user &&
@@ -32,7 +32,7 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
-    const user = await this.validateUser(dto.username, dto.password);
+    const user = await this.validateUser(dto.email, dto.password);
     if (!user) {
       throw new Error('Invalid credentials');
     }
@@ -47,6 +47,15 @@ export class AuthService {
         createdAt: user.createdAt,
       },
     };
+  }
+
+  logout(user: User | null) {
+    // invalidate jwt token
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    return { message: 'User logged out successfully' };
   }
 
   async register(dto: RegisterDto) {
