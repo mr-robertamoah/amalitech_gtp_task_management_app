@@ -4,9 +4,9 @@ export interface Comment {
   commentId: string;
   content: string;
   creator: UserSafe;
-  taskId: string;
+  taskId?: string;
   projectId: string;
-  teamId: string;
+  teamId?: string;
   createdAt: string;
   updatedAt: string;
   parentId?: string;
