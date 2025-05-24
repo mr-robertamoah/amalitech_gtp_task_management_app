@@ -80,7 +80,7 @@ export const teamService = {
   // Invite users to team
   inviteUsersToTeam: async (teamId, inviteData) => {
     try {
-      const response = await axios.post(`/teams/${teamId}/invite-users`, inviteData);
+      const response = await axios.post(`/teams/${teamId}/invite`, inviteData);
       return response.data;
     } catch (error) {
       showErrorAlert(error.response?.data?.message || 'Failed to invite users');
@@ -117,6 +117,17 @@ export const teamService = {
       return response.data;
     } catch (error) {
       showErrorAlert(error.response?.data?.message || 'Failed to ban member');
+      throw error;
+    }
+  },
+
+  // Activate a member
+  activateMember: async (teamId, userId) => {
+    try {
+      const response = await axios.patch(`/teams/${teamId}/members/${userId}/status`, { status: 'active' });
+      return response.data;
+    } catch (error) {
+      showErrorAlert(error.response?.data?.message || 'Failed to activate member');
       throw error;
     }
   },

@@ -118,6 +118,26 @@ const Team = () => {
     }
   };
 
+  const handleActivateMember = async (userId) => {
+    setLoadingStates(prev => ({
+      ...prev,
+      [userId]: { ...prev[userId], activateMember: true }
+    }));
+    
+    try {
+      const updatedTeam = await teamService.activateMember(teamId, userId);
+      setTeam(updatedTeam);
+      showSuccessAlert('Member has been activated');
+    } catch (error) {
+      console.error('Error activating member:', error);
+    } finally {
+      setLoadingStates(prev => ({
+        ...prev,
+        [userId]: { ...prev[userId], activateMember: false }
+      }));
+    }
+  };
+
   const handleRemoveMember = async (userId) => {
     setLoadingStates(prev => ({
       ...prev,
@@ -360,6 +380,7 @@ const Team = () => {
                   onMakeAdmin={(userId) => handleMakeAdmin(userId)}
                   onMakeMember={(userId) => handleMakeMember(userId)}
                   onBanMember={(userId) => handleBanMember(userId)}
+                  onActivateMember={(userId) => handleActivateMember(userId)}
                   onRemoveMember={(userId) => handleRemoveMember(userId)}
                 />
               ))}

@@ -83,7 +83,7 @@ export class TeamsService {
     return await this.getTeamData(res.Item as Team, withMembers);
   }
 
-  async getTeam(user: User, teamId: string): Promise<Team | null> {
+  async getTeam(user: User | null, teamId: string): Promise<Team | null> {
     const team = await this.getTeamById(teamId);
 
     if (!team) {
@@ -92,7 +92,7 @@ export class TeamsService {
 
     const teamMembership: UserMembership | null = await this.getTeamMembership(
       teamId,
-      user.userId,
+      user?.userId || null,
     );
 
     if (team.privacy == 'private' && !teamMembership) {

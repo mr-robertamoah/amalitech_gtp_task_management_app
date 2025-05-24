@@ -8,11 +8,13 @@ const MemberCard = ({
   isOwner, 
   onMakeAdmin, 
   onMakeMember, 
-  onBanMember, 
+  onBanMember,
+  onActivateMember,
   onRemoveMember,
   loadingStates = {}
 }) => {
   const [showBanConfirmation, setShowBanConfirmation] = useState(false);
+  const [showActivateConfirmation, setShowActivateConfirmation] = useState(false);
   const [showRemoveConfirmation, setShowRemoveConfirmation] = useState(false);
 
   // Get status color based on member status
@@ -67,8 +69,10 @@ const MemberCard = ({
             )}
           </div>
 
-          {isOwner && (
+          {/* Only show buttons for owner and not for invited members */}
+          {isOwner && member.status !== 'invited' && (
             <div className="flex flex-wrap gap-2 mt-2 border-t pt-3">
+              {/* Role buttons - show for both active and banned members */}
               {member.role === 'member' && (
                 <Button 
                   variant="secondary" 
@@ -107,23 +111,44 @@ const MemberCard = ({
                 </Button>
               )}
               
-              <Button 
-                variant="danger" 
-                size="small" 
-                onClick={() => setShowBanConfirmation(true)}
-                disabled={loadingStates.banMember}
-              >
-                Ban Member
-                {loadingStates.banMember && (
-                  <span className="ml-2 inline-block">
-                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                  </span>
-                )}
-              </Button>
+              {/* Show Ban button for active members, Activate button for banned members */}
+              {member.status === 'active' ? (
+                <Button 
+                  variant="danger" 
+                  size="small" 
+                  onClick={() => setShowBanConfirmation(true)}
+                  disabled={loadingStates.banMember}
+                >
+                  Ban Member
+                  {loadingStates.banMember && (
+                    <span className="ml-2 inline-block">
+                      <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    </span>
+                  )}
+                </Button>
+              ) : member.status === 'banned' ? (
+                <Button 
+                  variant="success" 
+                  size="small" 
+                  onClick={() => setShowActivateConfirmation(true)}
+                  disabled={loadingStates.activateMember}
+                >
+                  Activate Member
+                  {loadingStates.activateMember && (
+                    <span className="ml-2 inline-block">
+                      <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    </span>
+                  )}
+                </Button>
+              ) : null}
               
+              {/* Always show Remove Member button */}
               <Button 
                 variant="danger" 
                 size="small" 
@@ -157,6 +182,21 @@ const MemberCard = ({
         message={`Are you sure you want to ban ${member.details?.username || 'this member'}? They will no longer be able to access team resources.`}
         confirmText="Ban Member"
         isLoading={loadingStates.banMember}
+      />
+
+      {/* Activate Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showActivateConfirmation}
+        onClose={() => setShowActivateConfirmation(false)}
+        onConfirm={() => {
+          onActivateMember(member.userId);
+          setShowActivateConfirmation(false);
+        }}
+        title="Activate Team Member"
+        message={`Are you sure you want to activate ${member.details?.username || 'this member'}? They will regain access to team resources.`}
+        confirmText="Activate Member"
+        variant="success"
+        isLoading={loadingStates.activateMember}
       />
 
       {/* Remove Confirmation Modal */}
