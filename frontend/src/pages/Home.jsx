@@ -140,13 +140,13 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {publicTeams.map(team => {
               // Check if this team is already in the user's teams
-              const isUserTeam = user && userTeams.some(userTeam => userTeam.teamId === team.teamId);
+              // TODO const isUserTeam = user && userTeams.some(userTeam => userTeam.teamId === team.teamId);
               return (
                 <TeamCard 
                   key={team.teamId} 
                   team={team} 
                   showMembership={false} 
-                  canJoin={!isUserTeam && user}
+                  canJoin={false} // {!isUserTeam && user}
                 />
               );
             })}
