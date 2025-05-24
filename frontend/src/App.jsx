@@ -14,21 +14,25 @@ function App() {
 
   return (
     <Router>
-      <Navigation />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route
-          path="/login"
-          element={!user ? <Login /> : <Navigate to="/" replace />}
-        />
-        <Route
-          path="/register"
-          element={!user ? <Register /> : <Navigate to="/" replace />}
-        />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/team" element={<Team />} />
-        <Route path="/project/:projectId" element={<Project />} />
-      </Routes>
+      <div className="flex flex-col min-h-screen w-full">
+        <Navigation />
+        <div className="flex-grow w-full">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route
+              path="/login"
+              element={!user ? <Login /> : <Navigate to="/" replace />}
+            />
+            <Route
+              path="/register"
+              element={!user ? <Register /> : <Navigate to="/" replace />}
+            />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/team" element={<Team />} />
+            <Route path="/project/:projectId" element={<Project />} />
+          </Routes>
+        </div>
+      </div>
     </Router>
   );
 }
