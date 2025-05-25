@@ -13,7 +13,7 @@ export const projectService = {
     }
   },
 
-  createProject: async (teamId, projectData) => {
+  createProject: async (projectData) => {
     try {
       const response = await axios.post(`projects`, projectData);
       return response.data;
@@ -23,12 +23,33 @@ export const projectService = {
     }
   },
 
-  getProjectById: async (projectId) => {
+  getProjectById: async (projectId, user) => {
     try {
-      const response = await axios.get(`/projects/${projectId}`);
+      const response = user ? 
+        await axios.get(`/projects/${projectId}`) : await axios.get(`/projects/${projectId}/public`);
       return response.data;
     } catch (error) {
       showErrorAlert(error.response?.data?.message || 'Failed to fetch project details');
+      throw error;
+    }
+  },
+
+  updateProject: async (projectId, updateData) => {
+    try {
+      const response = await axios.post(`/projects/${projectId}`, updateData);
+      return response.data;
+    } catch (error) {
+      showErrorAlert(error.response?.data?.message || 'Failed to update project');
+      throw error;
+    }
+  },
+
+  deleteProject: async (projectId) => {
+    try {
+      const response = await axios.delete(`/projects/${projectId}`);
+      return response.data;
+    } catch (error) {
+      showErrorAlert(error.response?.data?.message || 'Failed to delete project');
       throw error;
     }
   }

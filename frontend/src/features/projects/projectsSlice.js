@@ -31,20 +31,20 @@ const projectsSlice = createSlice({
     },
     updateProject(state, action) {
       const index = state.projects.findIndex(
-        (project) => project.id === action.payload.id
+        (project) => project.projectId === action.payload.projectId
       );
       if (index !== -1) {
         state.projects[index] = action.payload;
       }
-      if (state.currentProject?.id === action.payload.id) {
+      if (state.currentProject?.projectId === action.payload.projectId) {
         state.currentProject = action.payload;
       }
     },
     deleteProject(state, action) {
       state.projects = state.projects.filter(
-        (project) => project.id !== action.payload
+        (project) => project.projectId !== action.payload
       );
-      if (state.currentProject?.id === action.payload) {
+      if (state.currentProject?.projectId === action.payload) {
         state.currentProject = null;
       }
     },
