@@ -22,44 +22,44 @@ const TaskCard = ({ task, onEdit, onDelete, onAssign, onUnassign, onViewDetails 
       
       <div className="mb-4">
         <span className="text-sm text-gray-500">
-          Assignee: {task.assignee || 'Unassigned'}
+          Assignee: {task.assignee?.username || 'Unassigned'}
         </span>
       </div>
       
       <div className="flex flex-wrap justify-end gap-2">
         <button 
           className="text-blue-600 hover:text-blue-800 text-sm underline"
-          onClick={() => onViewDetails(task.id)}
+          onClick={() => onViewDetails(task.taskId)}
         >
           View Details
         </button>
-        <Button 
+        {onEdit && <Button 
           variant="secondary" 
           size="small"
-          onClick={() => onEdit(task.id)}
+          onClick={() => onEdit(task.taskId)}
         >
           Edit
-        </Button>
-        <Button 
+        </Button>}
+        {onDelete && <Button 
           variant="danger" 
           size="small"
-          onClick={() => onDelete(task.id)}
+          onClick={() => onDelete(task.taskId)}
         >
           Delete
-        </Button>
-        {task.assignee ? (
-          <Button 
+        </Button>}
+        {task.assignee?.username ? (
+          (onAssign && <Button 
             variant="warning" 
             size="small"
-            onClick={() => onUnassign(task.id)}
+            onClick={() => onUnassign(task.taskId)}
           >
             Unassign
-          </Button>
-        ) : (
+          </Button>)
+        ) : (onAssign &&
           <Button 
             variant="primary" 
             size="small"
-            onClick={() => onAssign(task.id)}
+            onClick={() => onAssign(task.taskId)}
           >
             Assign
           </Button>

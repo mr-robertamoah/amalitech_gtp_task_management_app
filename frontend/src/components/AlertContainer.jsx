@@ -14,7 +14,7 @@ const AlertContainer = () => {
   if (alerts.length === 0) return null;
 
   return (
-    <div className="fixed top-20 right-4 z-50 w-full max-w-sm">
+    <div className="fixed top-20 right-4 z-[9999] w-full max-w-sm">
       {alerts.map((alert) => (
         <Alert
           key={alert.id}

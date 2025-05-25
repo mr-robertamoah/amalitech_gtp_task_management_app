@@ -1,31 +1,32 @@
 import React, { useState, useRef, useEffect } from 'react';
-import Button from './Button';
 
-const TaskCalendar = ({ tasks }) => {
+const TaskCalendar = ({ tasks, project }) => {
   const scrollRef = useRef(null);
   const [dates, setDates] = useState([]);
-  const [monthRange, setMonthRange] = useState({
-    before: 1, // Start with 1 month before
-    after: 1   // End with 1 month after
-  });
   
-  // Generate dates for the calendar
+  // Generate dates for the calendar based on project dates or default to 3 months
   useEffect(() => {
     const generateDates = () => {
       const today = new Date();
       const result = [];
       
-      // Start from monthRange.before months before
-      const startDate = new Date(today);
-      startDate.setMonth(today.getMonth() - monthRange.before);
-      startDate.setDate(1); // Start from the 1st day of the month
+      let startDate, endDate;
       
-      // Calculate end date based on monthRange.after
-      const endDate = new Date(today);
-      endDate.setMonth(today.getMonth() + monthRange.after);
-      // Set to last day of the month
-      endDate.setMonth(endDate.getMonth() + 1);
-      endDate.setDate(0);
+      // If project has both start and end dates, use them
+      if (project && project.startAt && project.endAt) {
+        startDate = new Date(project.startAt);
+        endDate = new Date(project.endAt);
+      } else {
+        // Default: show previous, current, and next month
+        startDate = new Date(today);
+        startDate.setMonth(today.getMonth() - 1);
+        startDate.setDate(1); // Start from the 1st day of the month
+        
+        endDate = new Date(today);
+        endDate.setMonth(today.getMonth() + 1);
+        endDate.setMonth(endDate.getMonth() + 1);
+        endDate.setDate(0); // Last day of the next month
+      }
       
       // Generate all dates in the range
       let currentDate = new Date(startDate);
@@ -38,7 +39,7 @@ const TaskCalendar = ({ tasks }) => {
     };
     
     generateDates();
-  }, [monthRange]);
+  }, [project]);
 
   // Scroll to today when component mounts
   useEffect(() => {
@@ -102,25 +103,13 @@ const TaskCalendar = ({ tasks }) => {
     return date.getDate() === 1;
   };
 
-  // Show more months
-  const handleShowMoreMonths = () => {
-    setMonthRange(prev => ({
-      before: prev.before + 1,
-      after: prev.after + 1
-    }));
-  };
+  // Filter tasks with dates
+  const tasksWithDates = tasks.filter(task => task.startAt && task.endAt);
 
   return (
     <div className="mb-8">
-      <div className="flex justify-between items-center mb-3">
+      <div className="mb-3">
         <h3 className="text-lg font-medium text-gray-900">Task Timeline</h3>
-        <Button 
-          variant="secondary" 
-          size="small"
-          onClick={handleShowMoreMonths}
-        >
-          Show More Months
-        </Button>
       </div>
       
       <div 
@@ -128,7 +117,7 @@ const TaskCalendar = ({ tasks }) => {
         className="overflow-x-auto pb-4"
         style={{ scrollBehavior: 'smooth' }}
       >
-        <div className="inline-flex min-w-full">
+        <div className="inline-block min-w-full">
           {/* Date headers */}
           <div className="flex">
             {dates.map((date, index) => (
@@ -153,10 +142,14 @@ const TaskCalendar = ({ tasks }) => {
             ))}
           </div>
           
-          {/* Task rows */}
-          <div className="absolute mt-8">
-            {tasks.filter(task => task.startAt && task.endAt).map((task, taskIndex) => (
-              <div key={taskIndex} className="flex h-8 mb-1">
+          {/* Task rows container with fixed height */}
+          <div className="relative" style={{ height: tasksWithDates.length > 0 ? `${tasksWithDates.length * 36}px` : '100px' }}>
+            {tasksWithDates.map((task, taskIndex) => (
+              <div 
+                key={taskIndex} 
+                className="absolute flex h-7 mt-1 mb-1 rounded-sm overflow-hidden" 
+                style={{ top: `${taskIndex * 36}px`, width: '100%' }}
+              >
                 {dates.map((date, dateIndex) => {
                   const onDate = isTaskOnDate(task, new Date(date));
                   return (
@@ -178,15 +171,15 @@ const TaskCalendar = ({ tasks }) => {
                 })}
               </div>
             ))}
+            
+            {tasksWithDates.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                No tasks with scheduled dates to display.
+              </div>
+            )}
           </div>
         </div>
       </div>
-      
-      {tasks.filter(task => task.startAt && task.endAt).length === 0 && (
-        <div className="text-center py-4 text-gray-500">
-          No tasks with scheduled dates to display.
-        </div>
-      )}
     </div>
   );
 };

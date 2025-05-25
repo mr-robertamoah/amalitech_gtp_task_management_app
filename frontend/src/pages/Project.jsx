@@ -2,14 +2,17 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { projectService } from '../services/projectService';
+import { taskService } from '../services/taskService';
 import { showErrorAlert, showSuccessAlert } from '../utils/alertUtils';
-import { formatDate } from '../utils/dateUtils';
+import { formatDate, formatFullDate } from '../utils/dateUtils';
 import { deleteProject, setCurrentProject } from '../features/projects/projectsSlice';
+import { fetchTasksStart, fetchTasksSuccess, fetchTasksFailure } from '../features/tasks/tasksSlice';
 import Button from '../components/Button';
 import TaskCard from '../components/TaskCard';
 import TaskDetailsModal from '../components/TaskDetailsModal';
 import TaskCalendar from '../components/TaskCalendar';
 import UpdateProjectModal from '../components/UpdateProjectModal';
+import AddTaskModal from '../components/AddTaskModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 
 export default function Project() {
@@ -18,52 +21,15 @@ export default function Project() {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user.user);
   const project = useSelector((state) => state.projects.currentProject);
+  const tasks = useSelector((state) => state.tasks.tasks);
+  const tasksLoading = useSelector((state) => state.tasks.loading);
   const [loading, setLoading] = useState(true);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [isTaskDetailsModalOpen, setIsTaskDetailsModalOpen] = useState(false);
-  const [tasks, setTasks] = useState([
-    { 
-      id: 1, 
-      title: 'Design UI', 
-      status: 'completed', 
-      assignee: 'John Doe',
-      assigner: 'Project Manager',
-      startAt: '2023-06-01T00:00:00Z',
-      endAt: '2023-06-05T00:00:00Z',
-      description: 'Create wireframes and mockups for the new dashboard'
-    },
-    { 
-      id: 2, 
-      title: 'Implement API', 
-      status: 'in-progress', 
-      assignee: 'Jane Smith',
-      assigner: 'Tech Lead',
-      startAt: '2023-06-06T00:00:00Z',
-      endAt: '2023-06-12T00:00:00Z',
-      description: 'Build RESTful endpoints for user management'
-    },
-    { 
-      id: 3, 
-      title: 'Write tests', 
-      status: 'pending', 
-      assignee: null,
-      assigner: 'QA Lead',
-      startAt: '2023-06-13T00:00:00Z',
-      endAt: '2023-06-18T00:00:00Z',
-      description: 'Create unit and integration tests for new features'
-    },
-    { 
-      id: 4, 
-      title: 'Deploy to production', 
-      status: 'pending', 
-      assignee: null,
-      assigner: 'DevOps Engineer',
-      description: 'Deploy the application to production servers'
-    }
-  ]); // Mock tasks data - replace with actual API call
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -80,6 +46,9 @@ export default function Project() {
         
         // Set project in Redux store
         dispatch(setCurrentProject(projectData));
+        
+        // Fetch tasks after project is loaded
+        fetchProjectTasks(projectData.projectId);
       } catch (error) {
         showErrorAlert('Failed to load project details');
         navigate('/', { replace: true });
@@ -95,6 +64,16 @@ export default function Project() {
       dispatch(setCurrentProject(null));
     };
   }, [projectId, navigate, dispatch]);
+
+  const fetchProjectTasks = async (projectId) => {
+    dispatch(fetchTasksStart());
+    try {
+      const tasksData = await taskService.getProjectTasks(projectId, user);
+      dispatch(fetchTasksSuccess(tasksData));
+    } catch (error) {
+      dispatch(fetchTasksFailure(error.message));
+    }
+  };
 
   const handleDeleteProject = async () => {
     setIsDeleting(true);
@@ -132,7 +111,7 @@ export default function Project() {
   };
 
   const handleViewTaskDetails = (taskId) => {
-    const task = tasks.find(t => t.id === taskId);
+    const task = tasks.find(t => t.taskId === taskId);
     if (task) {
       setSelectedTask(task);
       setIsTaskDetailsModalOpen(true);
@@ -145,15 +124,7 @@ export default function Project() {
     user.userId === project.teamOwnerId
   );
 
-  // Format date for display
-  const formatFullDate = (dateString) => {
-    if (!dateString) return 'Not set';
-    return new Date(dateString).toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
+  // Import formatFullDate from dateUtils instead of defining it here
 
   if (loading || !project) {
     return (
@@ -199,17 +170,25 @@ export default function Project() {
             <span className="font-medium">Created:</span> {formatDate(project.createdAt)}
           </div>
           <div>
-            <span className="font-medium">Start date:</span> {formatFullDate(project.startAt)}
+            <span className="font-medium">Start date:</span> {project.startAt ? 
+              <span className="text-blue-600 font-medium">{formatFullDate(project.startAt)}</span> : 
+              <span>Not set</span>
+            }
           </div>
           <div>
-            <span className="font-medium">End date:</span> {formatFullDate(project.endAt)}
+            <span className="font-medium mr-1">End date:</span> 
+            {project.endAt ? (
+              <span className="text-blue-600 font-medium">{formatFullDate(project.endAt)}</span>
+            ) : (
+              <span className="text-yellow-600 font-medium">Not set - No deadline</span>
+            )}
           </div>
         </div>
       </div>
       
       {/* Task Calendar */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <TaskCalendar tasks={tasks} />
+        <TaskCalendar tasks={tasks} project={project} />
       </div>
       
       {/* Tasks Section */}
@@ -220,32 +199,73 @@ export default function Project() {
             <Button 
               variant="primary" 
               size="small"
+              onClick={() => setIsAddTaskModalOpen(true)}
             >
               Add Task
             </Button>
           )}
         </div>
         
-        {/* Horizontal Task Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {tasks.length > 0 ? (
-            tasks.map((task) => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                onEdit={handleEditTask}
-                onDelete={handleDeleteTask}
-                onAssign={handleAssignTask}
-                onUnassign={handleUnassignTask}
-                onViewDetails={handleViewTaskDetails}
-              />
-            ))
-          ) : (
-            <div className="col-span-3 py-8 text-center text-gray-500">
-              No tasks found. Add a task to get started.
-            </div>
-          )}
-        </div>
+        {/* Tasks List */}
+        {tasksLoading ? (
+          <div className="flex justify-center items-center py-10">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {tasks.length > 0 ? (
+              tasks.map((task) => {
+                let canEditAndDelete = user && project && (
+                      project.creator?.userId === user.userId || 
+                      task.creator?.userId === user.userId ||
+                      project.teamOwnerId === user.userId
+                    )
+
+                let canAssign = user && project && (
+                      project.creator?.userId === user.userId || 
+                      task.creator?.userId === user.userId ||
+                      project.isAdmin
+                    )
+
+                let canUnassign = user && project && (
+                      project.creator?.userId === user.userId || 
+                      task.creator?.userId === user.userId ||
+                      task.assigner?.userId === user.userId
+                    )
+                  
+                return <TaskCard
+                  key={task.taskId}
+                  task={task}
+                  onEdit={
+                    canEditAndDelete ? 
+                    handleEditTask : 
+                    null
+                  }
+                  onDelete={
+                    canEditAndDelete ? 
+                    handleDeleteTask : 
+                    null
+                  }
+                  onAssign={
+                    canAssign ? 
+                    handleAssignTask : 
+                    null
+                  }
+                  onUnassign={
+                    canUnassign ? 
+                    handleUnassignTask : 
+                    null
+                  }
+                  onViewDetails={handleViewTaskDetails}
+                />
+              })
+            ) : (
+              <div className="col-span-3 py-8 text-center text-gray-500">
+                No tasks found. Add a task to get started.
+              </div>
+            )}
+          </div>
+        )}
       </div>
       
       {/* Update Project Modal */}
@@ -271,6 +291,14 @@ export default function Project() {
         isOpen={isTaskDetailsModalOpen}
         onClose={() => setIsTaskDetailsModalOpen(false)}
         task={selectedTask}
+      />
+      
+      {/* Add Task Modal */}
+      <AddTaskModal
+        isOpen={isAddTaskModalOpen}
+        onClose={() => setIsAddTaskModalOpen(false)}
+        projectId={projectId}
+        teamId={project.teamId}
       />
     </div>
   );

@@ -1,7 +1,7 @@
 import React from 'react';
 import Modal from './Modal';
 import Button from './Button';
-import { formatDate } from '../utils/dateUtils';
+import { formatDate, formatFullDate } from '../utils/dateUtils';
 
 const TaskDetailsModal = ({ isOpen, onClose, task }) => {
   if (!task) return null;
@@ -36,25 +36,25 @@ const TaskDetailsModal = ({ isOpen, onClose, task }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div>
             <h4 className="text-sm font-medium text-gray-700 mb-1">Assignee</h4>
-            <p className="text-sm text-gray-600">{task.assignee || 'Unassigned'}</p>
+            <p className="text-sm text-gray-600">{task.assignee?.username || 'Unassigned'}</p>
           </div>
           
           <div>
             <h4 className="text-sm font-medium text-gray-700 mb-1">Assigner</h4>
-            <p className="text-sm text-gray-600">{task.assigner || 'Unknown'}</p>
+            <p className="text-sm text-gray-600">{task.assigner?.username || 'Unknown'}</p>
           </div>
           
           <div>
             <h4 className="text-sm font-medium text-gray-700 mb-1">Start Date</h4>
-            <p className="text-sm text-gray-600">
-              {task.startAt ? formatDate(task.startAt) : 'Not set'}
+            <p className="text-sm text-blue-600 font-medium">
+              {task.startAt ? formatFullDate(task.startAt) : 'Not set'}
             </p>
           </div>
           
           <div>
             <h4 className="text-sm font-medium text-gray-700 mb-1">End Date</h4>
-            <p className="text-sm text-gray-600">
-              {task.endAt ? formatDate(task.endAt) : 'Not set'}
+            <p className="text-sm text-blue-600 font-medium">
+              {task.endAt ? formatFullDate(task.endAt) : 'Not set'}
             </p>
           </div>
         </div>
