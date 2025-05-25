@@ -50,7 +50,7 @@ export const taskService = {
   // Assign a task to a user
   assignTask: async (taskId, userId) => {
     try {
-      const response = await axios.post(`/tasks/${taskId}/assign`, { userId });
+      const response = await axios.post(`/tasks/${taskId}/assign`, { assigneeId: userId });
       return response.data;
     } catch (error) {
       showErrorAlert(changeArrayToString(error.response?.data?.message) || 'Failed to assign task');

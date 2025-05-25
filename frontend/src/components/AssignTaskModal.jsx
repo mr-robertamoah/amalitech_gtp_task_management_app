@@ -58,11 +58,13 @@ const AssignTaskModal = ({ isOpen, onClose, task, teamMembers }) => {
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                {teamMembers.map(member => (
-                  <option key={member.userId} value={member.userId}>
-                    {member.details?.username || member.userId}
-                  </option>
-                ))}
+                {teamMembers
+                  .filter(member => member.userId !== task?.assignee?.userId)
+                  .map(member => (
+                    <option key={member.userId} value={member.userId}>
+                      {member.isOwner ? 'Team Owner' : member.details?.username || member.userId}
+                    </option>
+                  ))}
               </select>
             ) : (
               <p className="text-sm text-gray-500">No team members available</p>

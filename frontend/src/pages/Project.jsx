@@ -15,6 +15,7 @@ import UpdateProjectModal from '../components/UpdateProjectModal';
 import AddTaskModal from '../components/AddTaskModal';
 import EditTaskModal from '../components/EditTaskModal';
 import AssignTaskModal from '../components/AssignTaskModal';
+import UnassignTaskConfirmationModal from '../components/UnassignTaskConfirmationModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 
 export default function Project() {
@@ -147,16 +148,30 @@ export default function Project() {
     }
   };
 
-  const handleUnassignTask = async (taskId) => {
+  const [isUnassignTaskModalOpen, setIsUnassignTaskModalOpen] = useState(false);
+  const [isUnassigning, setIsUnassigning] = useState(false);
+
+  const handleUnassignTask = (taskId) => {
     const task = tasks.find(t => t.taskId === taskId);
-    if (!task) return;
+    if (task) {
+      setSelectedTask(task);
+      setIsUnassignTaskModalOpen(true);
+    }
+  };
+  
+  const confirmUnassignTask = async () => {
+    if (!selectedTask) return;
     
+    setIsUnassigning(true);
     try {
-      const updatedTask = await taskService.unassignTask(taskId);
+      const updatedTask = await taskService.unassignTask(selectedTask.taskId);
       dispatch(updateTask(updatedTask));
       showSuccessAlert('Task unassigned successfully');
+      setIsUnassignTaskModalOpen(false);
     } catch (error) {
       showErrorAlert('Failed to unassign task');
+    } finally {
+      setIsUnassigning(false);
     }
   };
 
@@ -373,6 +388,15 @@ export default function Project() {
         message={`Are you sure you want to delete the task "${selectedTask?.title}"? This action cannot be undone.`}
         confirmText="Delete Task"
         isLoading={isDeletingTask}
+      />
+      
+      {/* Unassign Task Confirmation Modal */}
+      <UnassignTaskConfirmationModal
+        isOpen={isUnassignTaskModalOpen}
+        onClose={() => setIsUnassignTaskModalOpen(false)}
+        onConfirm={confirmUnassignTask}
+        task={selectedTask}
+        isLoading={isUnassigning}
       />
     </div>
   );
