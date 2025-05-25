@@ -102,6 +102,16 @@ export class TeamsService {
     return await this.getTeamData(team);
   }
 
+  async getPublicTeam(teamId: string): Promise<Team | null> {
+    const team = await this.getTeamById(teamId);
+
+    if (!team || team.privacy !== 'public') {
+      return null;
+    }
+
+    return await this.getTeamData(team);
+  }
+
   async getTeams(user: User) {
     const res = await this.db.send(
       new QueryCommand({

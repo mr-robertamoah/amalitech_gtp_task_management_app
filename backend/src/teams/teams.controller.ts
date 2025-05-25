@@ -233,9 +233,19 @@ export class TeamsController {
     return await this.teamsService.getProjects(user, teamId);
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Get(':teamId')
-  async getTeam(@Param('teamId') teamId: string, @GetUser() user: User | null) {
+  async getTeam(@Param('teamId') teamId: string, @GetUser() user: User) {
     const team = await this.teamsService.getTeam(user, teamId);
+    if (!team) {
+      throw new NotFoundException('Team not found');
+    }
+    return team;
+  }
+
+  @Get(':teamId/public')
+  async getPublicTeam(@Param('teamId') teamId: string) {
+    const team = await this.teamsService.getPublicTeam(teamId);
     if (!team) {
       throw new NotFoundException('Team not found');
     }
