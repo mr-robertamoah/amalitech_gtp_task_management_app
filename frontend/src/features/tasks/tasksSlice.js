@@ -27,7 +27,7 @@ const tasksSlice = createSlice({
     },
     updateTask(state, action) {
       const index = state.tasks.findIndex(
-        (task) => task.id === action.payload.id
+        (task) => task.taskId === action.payload.taskId
       );
       if (index !== -1) {
         state.tasks[index] = action.payload;
@@ -35,7 +35,7 @@ const tasksSlice = createSlice({
     },
     deleteTask(state, action) {
       state.tasks = state.tasks.filter(
-        (task) => task.id !== action.payload
+        (task) => task.taskId !== action.payload
       );
     },
   },

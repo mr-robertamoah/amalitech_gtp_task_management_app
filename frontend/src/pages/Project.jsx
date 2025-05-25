@@ -6,13 +6,15 @@ import { taskService } from '../services/taskService';
 import { showErrorAlert, showSuccessAlert } from '../utils/alertUtils';
 import { formatDate, formatFullDate } from '../utils/dateUtils';
 import { deleteProject, setCurrentProject } from '../features/projects/projectsSlice';
-import { fetchTasksStart, fetchTasksSuccess, fetchTasksFailure } from '../features/tasks/tasksSlice';
+import { fetchTasksStart, fetchTasksSuccess, fetchTasksFailure, updateTask, deleteTask } from '../features/tasks/tasksSlice';
 import Button from '../components/Button';
 import TaskCard from '../components/TaskCard';
 import TaskDetailsModal from '../components/TaskDetailsModal';
 import TaskCalendar from '../components/TaskCalendar';
 import UpdateProjectModal from '../components/UpdateProjectModal';
 import AddTaskModal from '../components/AddTaskModal';
+import EditTaskModal from '../components/EditTaskModal';
+import AssignTaskModal from '../components/AssignTaskModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 
 export default function Project() {
@@ -27,15 +29,20 @@ export default function Project() {
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
+  const [isEditTaskModalOpen, setIsEditTaskModalOpen] = useState(false);
+  const [isAssignTaskModalOpen, setIsAssignTaskModalOpen] = useState(false);
+  const [isDeleteTaskModalOpen, setIsDeleteTaskModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeletingTask, setIsDeletingTask] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [isTaskDetailsModalOpen, setIsTaskDetailsModalOpen] = useState(false);
+  const [teamMembers, setTeamMembers] = useState([]);
 
   useEffect(() => {
     const fetchProject = async () => {
       setLoading(true);
       try {
-        const projectData = await projectService.getProjectById(projectId);
+        const projectData = await projectService.getProjectById(projectId, user);
         
         // Check if project data is valid
         if (!projectData || !projectData.projectId) {
@@ -49,6 +56,16 @@ export default function Project() {
         
         // Fetch tasks after project is loaded
         fetchProjectTasks(projectData.projectId);
+        
+        // Fetch team members
+        if (projectData.teamId) {
+          try {
+            const teamData = await projectService.getTeamMembers(projectData.teamId);
+            setTeamMembers(teamData.filter(member => member.status === 'active'));
+          } catch (error) {
+            console.error('Failed to load team members:', error);
+          }
+        }
       } catch (error) {
         showErrorAlert('Failed to load project details');
         navigate('/', { replace: true });
@@ -68,7 +85,7 @@ export default function Project() {
   const fetchProjectTasks = async (projectId) => {
     dispatch(fetchTasksStart());
     try {
-      const tasksData = await taskService.getProjectTasks(projectId, user);
+      const tasksData = await taskService.getProjectTasks(projectId);
       dispatch(fetchTasksSuccess(tasksData));
     } catch (error) {
       dispatch(fetchTasksFailure(error.message));
@@ -91,23 +108,56 @@ export default function Project() {
   };
 
   const handleEditTask = (taskId) => {
-    // Implement task editing functionality
-    console.log(`Edit task ${taskId}`);
+    const task = tasks.find(t => t.taskId === taskId);
+    if (task) {
+      setSelectedTask(task);
+      setIsEditTaskModalOpen(true);
+    }
   };
 
   const handleDeleteTask = (taskId) => {
-    // Implement task deletion functionality
-    console.log(`Delete task ${taskId}`);
+    const task = tasks.find(t => t.taskId === taskId);
+    if (task) {
+      setSelectedTask(task);
+      setIsDeleteTaskModalOpen(true);
+    }
+  };
+
+  const confirmDeleteTask = async () => {
+    if (!selectedTask) return;
+    
+    setIsDeletingTask(true);
+    try {
+      await taskService.deleteTask(selectedTask.taskId);
+      dispatch(deleteTask(selectedTask.taskId));
+      showSuccessAlert('Task deleted successfully');
+      setIsDeleteTaskModalOpen(false);
+    } catch (error) {
+      showErrorAlert('Failed to delete task');
+    } finally {
+      setIsDeletingTask(false);
+    }
   };
 
   const handleAssignTask = (taskId) => {
-    // Implement task assignment functionality
-    console.log(`Assign task ${taskId}`);
+    const task = tasks.find(t => t.taskId === taskId);
+    if (task) {
+      setSelectedTask(task);
+      setIsAssignTaskModalOpen(true);
+    }
   };
 
-  const handleUnassignTask = (taskId) => {
-    // Implement task unassignment functionality
-    console.log(`Unassign task ${taskId}`);
+  const handleUnassignTask = async (taskId) => {
+    const task = tasks.find(t => t.taskId === taskId);
+    if (!task) return;
+    
+    try {
+      const updatedTask = await taskService.unassignTask(taskId);
+      dispatch(updateTask(updatedTask));
+      showSuccessAlert('Task unassigned successfully');
+    } catch (error) {
+      showErrorAlert('Failed to unassign task');
+    }
   };
 
   const handleViewTaskDetails = (taskId) => {
@@ -123,8 +173,6 @@ export default function Project() {
     user.userId === project.creator?.userId || 
     user.userId === project.teamOwnerId
   );
-
-  // Import formatFullDate from dateUtils instead of defining it here
 
   if (loading || !project) {
     return (
@@ -219,19 +267,19 @@ export default function Project() {
                       project.creator?.userId === user.userId || 
                       task.creator?.userId === user.userId ||
                       project.teamOwnerId === user.userId
-                    )
+                    );
 
                 let canAssign = user && project && (
                       project.creator?.userId === user.userId || 
                       task.creator?.userId === user.userId ||
                       project.isAdmin
-                    )
+                    );
 
                 let canUnassign = user && project && (
                       project.creator?.userId === user.userId || 
                       task.creator?.userId === user.userId ||
                       task.assigner?.userId === user.userId
-                    )
+                    );
                   
                 return <TaskCard
                   key={task.taskId}
@@ -257,7 +305,7 @@ export default function Project() {
                     null
                   }
                   onViewDetails={handleViewTaskDetails}
-                />
+                />;
               })
             ) : (
               <div className="col-span-3 py-8 text-center text-gray-500">
@@ -299,6 +347,32 @@ export default function Project() {
         onClose={() => setIsAddTaskModalOpen(false)}
         projectId={projectId}
         teamId={project.teamId}
+      />
+      
+      {/* Edit Task Modal */}
+      <EditTaskModal
+        isOpen={isEditTaskModalOpen}
+        onClose={() => setIsEditTaskModalOpen(false)}
+        task={selectedTask}
+      />
+      
+      {/* Assign Task Modal */}
+      <AssignTaskModal
+        isOpen={isAssignTaskModalOpen}
+        onClose={() => setIsAssignTaskModalOpen(false)}
+        task={selectedTask}
+        teamMembers={teamMembers}
+      />
+      
+      {/* Delete Task Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={isDeleteTaskModalOpen}
+        onClose={() => setIsDeleteTaskModalOpen(false)}
+        onConfirm={confirmDeleteTask}
+        title="Delete Task"
+        message={`Are you sure you want to delete the task "${selectedTask?.title}"? This action cannot be undone.`}
+        confirmText="Delete Task"
+        isLoading={isDeletingTask}
       />
     </div>
   );

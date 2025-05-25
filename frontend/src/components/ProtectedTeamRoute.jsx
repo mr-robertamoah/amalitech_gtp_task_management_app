@@ -24,7 +24,7 @@ const ProtectedTeamRoute = ({ children }) => {
         }
         
         // If not in user's teams, check if it's a public team
-        const teamDetails = await teamService.getTeamById(teamId);
+        const teamDetails = await teamService.getTeamById(teamId, user);
         
         if (teamDetails && teamDetails.privacy === 'public') {
           setHasAccess(true);
