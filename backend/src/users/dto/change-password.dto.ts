@@ -4,7 +4,6 @@ import { PasswordsNotEqual } from '../validators/password-not-equal.validator';
 export class ChangePasswordDto {
   @IsString()
   @IsNotEmpty()
-  @MinLength(8)
   oldPassword: string;
 
   @IsString()

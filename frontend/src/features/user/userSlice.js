@@ -33,10 +33,15 @@ const userSlice = createSlice({
       state.accessToken = null;
       state.error = null;
       localStorage.removeItem('user');
+      localStorage.removeItem('access_token');
+    },
+    updateUserSuccess(state, action) {
+      state.user = { ...state.user, ...action.payload };
+      localStorage.setItem('user', JSON.stringify(state.user));
     },
   },
 });
 
-export const { loginSuccess, loginFailure, logout } = userSlice.actions;
+export const { loginSuccess, loginFailure, logout, updateUserSuccess } = userSlice.actions;
 
 export default userSlice.reducer;

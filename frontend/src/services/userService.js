@@ -2,24 +2,32 @@ import axios from '../api/axios';
 import { showErrorAlert } from '../utils/alertUtils';
 
 export const userService = {
-  // Search users by username or email
-  searchUsers: async (query) => {
+  updateProfile: async (userId, userData) => {
     try {
-      const response = await axios.get(`/users/search?q=${encodeURIComponent(query)}`);
+      const response = await axios.post(`/users/${userId}`, userData);
       return response.data;
     } catch (error) {
-      showErrorAlert(error.response?.data?.message || 'Failed to search users');
+      showErrorAlert(error.response?.data?.message || 'Failed to update profile');
       throw error;
     }
   },
-
-  // Get user profile
-  getUserProfile: async () => {
+  
+  changePassword: async (passwordData) => {
     try {
-      const response = await axios.get('/users/profile');
+      const response = await axios.post('/users/change-password', passwordData);
       return response.data;
     } catch (error) {
-      showErrorAlert(error.response?.data?.message || 'Failed to fetch user profile');
+      showErrorAlert(error.response?.data?.message || 'Failed to change password');
+      throw error;
+    }
+  },
+  
+  deleteAccount: async () => {
+    try {
+      const response = await axios.delete('/users/account');
+      return response.data;
+    } catch (error) {
+      showErrorAlert(error.response?.data?.message || 'Failed to delete account');
       throw error;
     }
   }

@@ -5,6 +5,7 @@ export interface User {
   username: string;
   password?: string; // Hashed
   email: string;
+  name?: string;
   emailVerified?: boolean;
   avatarUrl?: string;
   bio?: string;
@@ -16,6 +17,7 @@ export interface UserSafe {
   userId: string;
   username: string;
   email: string;
+  name?: string;
   avatarUrl?: string;
   createdAt?: string;
 }

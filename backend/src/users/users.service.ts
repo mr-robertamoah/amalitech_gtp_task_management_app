@@ -177,21 +177,34 @@ export class UsersService {
 
   async updateUser(
     userId: string,
-    updates: Partial<{ username: string; email: string }>,
+    updates: Partial<{
+      username?: string;
+      email?: string;
+      name?: string;
+      bio?: string;
+      avatarUrl?: string;
+    }>,
   ): Promise<User | null> {
     if (!updates || Object.keys(updates).length === 0) {
       throw new Error('No updates provided');
     }
-    const user = await this.getUserById(userId);
+    let user = await this.getUserById(userId);
     if (!user) {
       return null;
     }
 
+    user = this.getUserData(user) as User;
+    let hasUpdate: boolean = false;
     // ensure username and email are not already taken
     if (updates.username) {
       const existingUser = await this.getUserByUsername(updates.username);
       if (existingUser && existingUser.userId !== userId) {
         throw new Error('Username already taken');
+      }
+
+      if (updates.username !== user.username) {
+        user.username = updates.username;
+        hasUpdate = true;
       }
     }
     if (updates.email) {
@@ -199,16 +212,30 @@ export class UsersService {
       if (existingUser && existingUser.userId !== userId) {
         throw new Error('Email already taken');
       }
+
+      if (updates.email !== user.email) {
+        user.email = updates.email;
+        hasUpdate = true;
+      }
     }
 
-    const updateExpr: string[] = [];
-    const exprAttrNames: Record<string, string> = {};
-    const exprAttrValues: Record<string, any> = {};
+    if (updates.name && updates.name !== user.name) {
+      user.name = updates.name;
+      hasUpdate = true;
+    }
 
-    for (const key of Object.keys(updates) as (keyof typeof updates)[]) {
-      updateExpr.push(`#${key} = :${key}`);
-      exprAttrNames[`#${key}`] = key;
-      exprAttrValues[`:${key}`] = updates[key];
+    if (updates.bio && updates.bio !== user.bio) {
+      user.bio = updates.bio;
+      hasUpdate = true;
+    }
+
+    if (updates.avatarUrl && updates.avatarUrl !== user.avatarUrl) {
+      user.avatarUrl = updates.avatarUrl;
+      hasUpdate = true;
+    }
+
+    if (!hasUpdate) {
+      throw new Error('No updates provided');
     }
 
     try {
@@ -219,15 +246,26 @@ export class UsersService {
             PK: `USER#${userId}`,
             SK: 'METADATA',
           },
-          UpdateExpression: `SET ${updateExpr.join(', ')}`,
-          ExpressionAttributeNames: exprAttrNames,
-          ExpressionAttributeValues: exprAttrValues,
+          UpdateExpression:
+            'SET #username = :username, #email = :email, #name = :name, #bio = :bio, #avatarUrl = :avatarUrl',
+          ExpressionAttributeNames: {
+            '#username': 'username',
+            '#email': 'email',
+            '#name': 'name',
+            '#bio': 'bio',
+            '#avatarUrl': 'avatarUrl',
+          },
+          ExpressionAttributeValues: {
+            ':username': user.username,
+            ':email': user.email,
+            ':name': user.name || '',
+            ':bio': user.bio || '',
+            ':avatarUrl': user.avatarUrl || '',
+          },
         }),
       );
 
-      const updatedUser = await this.getUserById(userId);
-
-      return this.getUserData(updatedUser);
+      return this.getUserData(user);
     } catch (error) {
       console.error('Error updating user:', error);
       throw new Error('User update failed');
@@ -264,6 +302,7 @@ export class UsersService {
       userId: user.userId,
       username: user.username,
       email: user.email,
+      name: user.name || '',
       bio: user.bio,
       avatarUrl: user.avatarUrl,
       teams: user.teams || [],
