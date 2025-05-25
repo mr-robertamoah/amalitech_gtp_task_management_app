@@ -1,8 +1,19 @@
 import axios from '../api/axios';
-import { showErrorAlert } from '../utils/alertUtils';
+import { showErrorAlert, showSuccessAlert } from '../utils/alertUtils';
 import { changeArrayToString } from '../utils/errorUtils';
 
 export const teamService = {
+  // Respond to team invitation
+  respondToInvitation: async (teamId, response) => {
+    try {
+      const result = await axios.post(`/teams/${teamId}/respond-to-invitation`, { response });
+      showSuccessAlert(response === 'accept' ? 'Team invitation accepted!' : 'Team invitation rejected');
+      return result.data;
+    } catch (error) {
+      showErrorAlert(changeArrayToString(error.response?.data?.message) || 'Failed to respond to invitation');
+      throw error;
+    }
+  },
   // Get teams the current user belongs to
   getUserTeams: async () => {
     try {

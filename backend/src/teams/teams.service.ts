@@ -172,6 +172,7 @@ export class TeamsService {
         description: item.description?.S,
         createdAt: item.createdAt?.S,
         role: membership?.role,
+        status: membership?.status,
       };
     });
 

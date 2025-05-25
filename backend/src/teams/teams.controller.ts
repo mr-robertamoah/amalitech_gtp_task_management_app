@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -165,15 +166,22 @@ export class TeamsController {
     @GetUser() user: User,
     @Body() respondDto: RespondToInvitationDto,
   ) {
-    const team = await this.teamsService.respondToTeamInvitation(
-      user,
-      teamId,
-      respondDto,
-    );
-    if (!team) {
-      throw new NotFoundException('Team not found');
+    try {
+      const team = await this.teamsService.respondToTeamInvitation(
+        user,
+        teamId,
+        respondDto,
+      );
+      if (!team) {
+        throw new NotFoundException('Team not found');
+      }
+      return team;
+    } catch (error) {
+      if (error.message) {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
     }
-    return team;
   }
 
   @UseGuards(AuthGuard('jwt'))
@@ -186,36 +194,36 @@ export class TeamsController {
     return team;
   }
 
-//   @UseGuards(AuthGuard('jwt'))
-//   @Post(':teamId/respond-to-request')
-//   async respondToTeamRequest(
-//     @Param('teamId') teamId: string,
-//     @GetUser() user: User,
-//     @Body() respondDto: RespondToInvitationDto,
-//   ) {
-//     const team = await this.teamsService.respondToTeamRequest(
-//       user,
-//       teamId,
-//       respondDto,
-//     );
-//     if (!team) {
-//       throw new NotFoundException('Team not found');
-//     }
-//     return team;
-//   }
+  //   @UseGuards(AuthGuard('jwt'))
+  //   @Post(':teamId/respond-to-request')
+  //   async respondToTeamRequest(
+  //     @Param('teamId') teamId: string,
+  //     @GetUser() user: User,
+  //     @Body() respondDto: RespondToInvitationDto,
+  //   ) {
+  //     const team = await this.teamsService.respondToTeamRequest(
+  //       user,
+  //       teamId,
+  //       respondDto,
+  //     );
+  //     if (!team) {
+  //       throw new NotFoundException('Team not found');
+  //     }
+  //     return team;
+  //   }
 
-//   @UseGuards(AuthGuard('jwt'))
-//   @Post(':teamId/request-membership')
-//   async requestMembership(
-//     @Param('teamId') teamId: string,
-//     @GetUser() owner: User,
-//   ) {
-//     const team = await this.teamsService.requestMembership(owner, teamId);
-//     if (!team) {
-//       throw new NotFoundException('Team not found');
-//     }
-//     return team;
-//   }
+  //   @UseGuards(AuthGuard('jwt'))
+  //   @Post(':teamId/request-membership')
+  //   async requestMembership(
+  //     @Param('teamId') teamId: string,
+  //     @GetUser() owner: User,
+  //   ) {
+  //     const team = await this.teamsService.requestMembership(owner, teamId);
+  //     if (!team) {
+  //       throw new NotFoundException('Team not found');
+  //     }
+  //     return team;
+  //   }
 
   @Get(':teamId/members')
   async getTeamMembers(

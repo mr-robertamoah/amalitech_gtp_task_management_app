@@ -73,6 +73,31 @@ const teamsSlice = createSlice({
         state.currentTeam = action.payload;
       }
     },
+    updateUserTeam(state, action) {
+      // Update in userTeams if it exists there
+      const userTeamIndex = state.userTeams.findIndex(
+        team => team.teamId === action.payload.teamId
+      );
+      if (userTeamIndex !== -1) {
+        state.userTeams[userTeamIndex] = action.payload;
+      }
+      
+      // Update currentTeam if it matches
+      if (state.currentTeam?.teamId === action.payload.teamId) {
+        state.currentTeam = action.payload;
+      }
+    },
+    removeUserTeam(state, action) {
+      // Remove team from user's teams
+      state.userTeams = state.userTeams.filter(
+        team => team.teamId !== action.payload
+      );
+      
+      // Clear currentTeam if it matches
+      if (state.currentTeam?.teamId === action.payload) {
+        state.currentTeam = null;
+      }
+    },
   },
 });
 
@@ -86,6 +111,8 @@ export const {
   leaveTeam,
   createTeam,
   updateTeam,
+  updateUserTeam,
+  removeUserTeam,
 } = teamsSlice.actions;
 
 export default teamsSlice.reducer;

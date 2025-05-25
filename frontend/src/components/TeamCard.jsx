@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import Button from './Button';
 import { teamService } from '../services/teamService';
-import { joinTeam } from '../features/teams/teamsSlice';
+import { joinTeam, updateUserTeam, removeUserTeam } from '../features/teams/teamsSlice';
 import { showSuccessAlert, showErrorAlert } from '../utils/alertUtils';
 import { formatDate } from '../utils/dateUtils';
 
@@ -13,6 +13,8 @@ const TeamCard = ({ team, showMembership = true, canJoin = false }) => {
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
+  const [isAccepting, setIsAccepting] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
   
   // Determine if the user is a member and their role
   const isOwner = user && team.ownerId === user.userId;
@@ -48,6 +50,30 @@ const TeamCard = ({ team, showMembership = true, canJoin = false }) => {
       showErrorAlert(error.message || 'Failed to join team');
     } finally {
       setIsJoining(false);
+    }
+  };
+  
+  // Handle invitation response
+  const handleInvitationResponse = async (response) => {
+    if (response === 'accept') {
+      setIsAccepting(true);
+    } else {
+      setIsRejecting(true);
+    }
+    
+    try {
+      const result = await teamService.respondToInvitation(team.teamId, response);
+      
+      if (response === 'accept') {
+        dispatch(updateUserTeam(result));
+      } else {
+        dispatch(removeUserTeam(team.teamId));
+      }
+    } catch (error) {
+      // Error is already handled in the service
+    } finally {
+      setIsAccepting(false);
+      setIsRejecting(false);
     }
   };
 
@@ -108,6 +134,31 @@ const TeamCard = ({ team, showMembership = true, canJoin = false }) => {
             )
           )}
         </div>
+          {team.status === 'invited' && (
+            <div className="mt-4">
+              <span className="text-xs mb-2 text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full">
+                You are invited to join this team
+              </span>
+              <div className="flex space-x-2 mt-2">
+                <Button
+                  variant="outline"
+                  size="small"
+                  onClick={() => handleInvitationResponse('accept')}
+                  isLoading={isAccepting}
+                >
+                  Accept
+                </Button>
+                <Button
+                  variant="outline"
+                  size="small"
+                  onClick={() => handleInvitationResponse('reject')}
+                  isLoading={isRejecting}
+                >
+                  Reject
+                </Button>
+              </div>
+            </div>
+          )}
       </div>
 
       {/* Join Team Modal */}
