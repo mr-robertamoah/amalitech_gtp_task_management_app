@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -47,7 +48,14 @@ export class ProjectsController {
     @Body() createProjectDto: CreateProjectDto,
     @GetUser() owner: User,
   ) {
-    return await this.projectsService.createProject(owner, createProjectDto);
+    try {
+      return await this.projectsService.createProject(owner, createProjectDto);
+    } catch (error) {
+      if (error.message) {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
   }
 
   @UseGuards(AuthGuard('jwt'))
@@ -57,16 +65,23 @@ export class ProjectsController {
     @Body() updateProjectDto: UpdateProjectDto,
     @GetUser() owner: User,
   ) {
-    const project = await this.projectsService.updateProject(
-      owner,
-      projectId,
-      updateProjectDto,
-    );
+    try {
+      const project = await this.projectsService.updateProject(
+        owner,
+        projectId,
+        updateProjectDto,
+      );
 
-    if (!project) {
-      throw new NotFoundException('Project not found');
+      if (!project) {
+        throw new NotFoundException('Project not found');
+      }
+      return project;
+    } catch (error) {
+      if (error.message) {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
     }
-    return project;
   }
 
   @UseGuards(AuthGuard('jwt'))

@@ -319,6 +319,11 @@ export class ProjectsService {
     return { message: 'Project deleted successfully' };
   }
 
+  // TODO create a private method which will do extra validation on the dates
+  // it will ensure that updating the startat does not go beyond the earliest task
+  // endat is not before the endat of any task
+  // the method will be used in the updateProject method
+
   validateDates(startAt: string | undefined, endAt: string | undefined) {
     if (startAt && endAt) {
       const startDate = new Date(startAt);
@@ -335,11 +340,16 @@ export class ProjectsService {
         throw new Error('Dates should be at least 1 day apart');
       }
 
-      // Dates should be in the future
+      // Dates can be today or in the future
+      // currentDate is the current date without time
       const currentDate = new Date();
+      currentDate.setHours(0, 0, 0, 0); // Set to the start of the day
+
       if (startDate < currentDate || endDate < currentDate) {
-        throw new Error('Dates should be in the future');
+        throw new Error('Dates cannot be in the past');
       }
+
+      return;
     }
 
     if (!startAt && !endAt) {
@@ -347,7 +357,7 @@ export class ProjectsService {
     }
 
     throw new Error(
-      'You cannot set on one date (startAt or endAt) without the other',
+      'You cannot set one date (startAt or endAt) without the other',
     );
   }
 

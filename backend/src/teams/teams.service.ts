@@ -1095,6 +1095,8 @@ export class TeamsService {
         description: project.description,
         creator: project.creator,
         teamId: project.teamId,
+        startAt: project.startAt,
+        endAt: project.endAt,
         createdAt: project.createdAt,
         updatedAt: project.updatedAt,
       };
@@ -1103,6 +1105,8 @@ export class TeamsService {
       projectId: project.projectId?.S,
       name: project.name?.S,
       description: project.description?.S,
+      startAt: project.startAt?.S,
+      endAt: project.endAt?.S,
       creator: this.transformObject(project.creator?.M),
       teamId: project.teamId?.S,
       createdAt: project.createdAt?.S,

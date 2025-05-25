@@ -330,6 +330,73 @@ export class TasksService {
     return taskListWithComments.filter((task) => task !== null);
   }
 
+  async getPublicProjectTasks(projectId: string) {
+    const project = await this.projectsService.getProjectById(projectId);
+
+    if (!project) {
+      throw new Error('Project was not found');
+    }
+
+    const team = await this.teamsService.getTeamById(project.teamId);
+
+    if (!team) {
+      throw new Error('Team for the project not found');
+    }
+
+    if (team.privacy === 'private') {
+      throw new Error('You are not a member of this team');
+    }
+
+    const res = await this.db.send(
+      new ScanCommand({
+        TableName: process.env.DYNAMO_TABLE_NAME,
+        FilterExpression: 'begins_with(PK, :PK) AND SK = :SK',
+        ExpressionAttributeValues: {
+          ':PK': `TASK#`,
+          ':SK': `PROJECT#${projectId}`,
+        },
+      }),
+    );
+
+    if (!res.Items || res.Items.length === 0) {
+      return [];
+    }
+    const tasks = res.Items.map((task) => this.getTaskData(task as Task));
+    const taskIds = tasks.map((task) => task?.taskId);
+    const taskMap = new Map<string, Task>();
+    tasks.forEach((task) => {
+      if (task?.taskId) taskMap.set(task.taskId, task);
+    });
+    const taskList = taskIds.map((taskId) =>
+      taskId ? taskMap.get(taskId) : null,
+    );
+    const taskListWithComments = taskList.map((task) => {
+      if (!task) return null;
+      return this.getTaskData(task);
+    });
+    return taskListWithComments.filter((task) => task !== null);
+  }
+
+  private validateDates(
+    startAt: string | undefined,
+    endAt: string | undefined,
+    project: { startAt?: string; endAt?: string },
+  ) {
+    this.projectsService.validateDates(startAt, endAt);
+
+    if (
+      startAt &&
+      project.startAt &&
+      new Date(startAt) < new Date(project.startAt)
+    ) {
+      throw new Error('Task start date cannot be before project start date');
+    }
+
+    if (endAt && project.endAt && new Date(endAt) > new Date(project.endAt)) {
+      throw new Error('Task end date cannot be after project end date');
+    }
+  }
+
   async createTask(user: User, dto: CreateTaskDto) {
     const project = await this.projectsService.getProjectById(dto.projectId);
 
@@ -374,6 +441,13 @@ export class TasksService {
       updatedAt: date,
       creator: this.teamsService.getUserSafeData(user),
     };
+
+    this.validateDates(dto.startAt, dto.endAt, project);
+
+    if (dto.startAt) {
+      task.startAt = dto.startAt;
+      task.endAt = dto.endAt;
+    }
 
     const mashallOptions = {
       removeUndefinedValues: true,
@@ -473,7 +547,7 @@ export class TasksService {
       throw new Error('No fields to update');
     }
 
-    this.projectsService.validateDates(task.startAt, task.endAt);
+    this.validateDates(task.startAt, task.endAt, project);
 
     task.updatedAt = new Date().toISOString();
 
@@ -639,6 +713,8 @@ export class TasksService {
         teamId: task.teamId,
         createdAt: task.createdAt,
         updatedAt: task.updatedAt,
+        startAt: task.startAt,
+        endAt: task.endAt,
         creator: task.creator,
       };
 
@@ -647,6 +723,9 @@ export class TasksService {
       title: task.title?.S,
       description: task.description?.S,
       projectId: task.projectId?.S,
+      status: task.status?.S,
+      startAt: task.startAt?.S,
+      endAt: task.endAt?.S,
       creator: this.teamsService.transformObject(task.creator?.M),
       assignee: this.teamsService.transformObject(task.assignee?.M),
       assigner: this.teamsService.transformObject(task.assigner?.M),

@@ -7,6 +7,7 @@ import {
   Param,
   Post,
   UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { AuthGuard } from '@nestjs/passport';
@@ -37,7 +38,26 @@ export class TasksController {
     @Param('projectId') projectId: string,
     @GetUser() user: User,
   ) {
-    return await this.tasksService.getProjectTasks(user, projectId);
+    try {
+      return await this.tasksService.getProjectTasks(user, projectId);
+    } catch (error) {
+      if (error.message) {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
+  }
+
+  @Get('projects/:projectId/public')
+  async getPublicProjectTasks(@Param('projectId') projectId: string) {
+    try {
+      return await this.tasksService.getPublicProjectTasks(projectId);
+    } catch (error) {
+      if (error.message) {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
   }
 
   @UseGuards(AuthGuard('jwt'))
@@ -46,7 +66,14 @@ export class TasksController {
     @Body() createTaskDto: CreateTaskDto,
     @GetUser() owner: User,
   ) {
-    return await this.tasksService.createTask(owner, createTaskDto);
+    try {
+      return await this.tasksService.createTask(owner, createTaskDto);
+    } catch (error) {
+      if (error.message) {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
   }
 
   @UseGuards(AuthGuard('jwt'))
@@ -92,16 +119,23 @@ export class TasksController {
     @Body() updateTaskDto: UpdateTaskDto,
     @GetUser() user: User,
   ) {
-    const task = await this.tasksService.updateTask(
-      user,
-      taskId,
-      updateTaskDto,
-    );
+    try {
+      const task = await this.tasksService.updateTask(
+        user,
+        taskId,
+        updateTaskDto,
+      );
 
-    if (!task) {
-      throw new NotFoundException('Task not found');
+      if (!task) {
+        throw new NotFoundException('Task not found');
+      }
+      return task;
+    } catch (error) {
+      if (error.message) {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
     }
-    return task;
   }
 
   @UseGuards(AuthGuard('jwt'))
