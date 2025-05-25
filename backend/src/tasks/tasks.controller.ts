@@ -33,6 +33,19 @@ export class TasksController {
   }
 
   @UseGuards(AuthGuard('jwt'))
+  @Get('users/:userId')
+  async getUserTasks(@Param('userId') userId: string, @GetUser() user: User) {
+    try {
+      return await this.tasksService.getUserTasks(user, userId);
+    } catch (error) {
+      if (error.message) {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
+  }
+
+  @UseGuards(AuthGuard('jwt'))
   @Get('projects/:projectId')
   async getProjectTasks(
     @Param('projectId') projectId: string,

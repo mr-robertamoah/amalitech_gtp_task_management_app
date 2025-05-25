@@ -1,4 +1,10 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -12,7 +18,14 @@ export class AuthController {
 
   @Post('login')
   async login(@Body() dto: LoginDto) {
-    return await this.authService.login(dto);
+    try {
+      return await this.authService.login(dto);
+    } catch (error) {
+      if (error.message) {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
   }
 
   @UseGuards(AuthGuard('jwt'))

@@ -9,7 +9,9 @@ export interface Task {
   endAt?: string;
   creator: UserSafe;
   assignee?: UserSafe;
+  assigneeId?: string;
   assigner?: UserSafe;
+  assignerId?: string;
   comments?: Comment[];
   tags?: string[];
   subtasks?: Task[];

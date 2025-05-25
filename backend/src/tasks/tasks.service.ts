@@ -108,13 +108,15 @@ export class TasksService {
     task.assignee = this.teamsService.removeKeysWithUndefinedValue(
       this.teamsService.getUserSafeData(assignee),
     ) as UserSafe;
+    task.assigneeId = assignee.userId;
     task.updatedAt = new Date().toISOString();
     task.status = 'pending';
     task.assigner = this.teamsService.removeKeysWithUndefinedValue(
       this.teamsService.getUserSafeData(user),
     ) as UserSafe;
-    delete task.startAt;
-    delete task.endAt;
+    task.assignerId = user.userId;
+    // delete task.startAt;
+    // delete task.endAt;
 
     await this.db.send(
       new PutCommand({
@@ -203,11 +205,13 @@ export class TasksService {
     }
 
     delete task.assignee;
+    delete task.assigneeId;
     delete task.assigner;
+    delete task.assignerId;
     task.updatedAt = new Date().toISOString();
     task.status = 'pending';
-    delete task.startAt;
-    delete task.endAt;
+    // delete task.startAt;
+    // delete task.endAt;
 
     await this.db.send(
       new PutCommand({
@@ -277,6 +281,43 @@ export class TasksService {
       ...task,
       // TODO comments
     };
+  }
+
+  async getUserTasks(user: User, userId: string) {
+    if (user.userId !== userId) {
+      throw new Error('You can only get your own tasks');
+    }
+
+    const res = await this.db.send(
+      new ScanCommand({
+        TableName: process.env.DYNAMO_TABLE_NAME,
+        FilterExpression:
+          'begins_with(PK, :PK) AND begins_with(SK, :SK) AND assigneeId = :assigneeId',
+        ExpressionAttributeValues: {
+          ':PK': `TASK#`,
+          ':SK': `PROJECT#`,
+          ':assigneeId': userId,
+        },
+      }),
+    );
+
+    if (!res.Items || res.Items.length === 0) {
+      return [];
+    }
+    const tasks = res.Items.map((task) => this.getTaskData(task as Task));
+    const taskIds = tasks.map((task) => task?.taskId);
+    const taskMap = new Map<string, Task>();
+    tasks.forEach((task) => {
+      if (task?.taskId) taskMap.set(task.taskId, task);
+    });
+    const taskList = taskIds.map((taskId) =>
+      taskId ? taskMap.get(taskId) : null,
+    );
+    const taskListWithComments = taskList.map((task) => {
+      if (!task) return null;
+      return this.getTaskData(task);
+    });
+    return taskListWithComments.filter((task) => task !== null);
   }
 
   async getProjectTasks(user: User, projectId: string) {
@@ -555,7 +596,7 @@ export class TasksService {
       new PutCommand({
         TableName: process.env.DYNAMO_TABLE_NAME,
         Item: {
-          PK: `TASk#${taskId}`,
+          PK: `TASK#${taskId}`,
           SK: `PROJECT#${task.projectId}`,
           ...task,
         },

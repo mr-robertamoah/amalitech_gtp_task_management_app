@@ -13,7 +13,7 @@ const EditTaskModal = ({ isOpen, onClose, task }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    status: 'pending',
+    // status: 'pending',
     startAt: '',
     endAt: ''
   });
@@ -25,7 +25,7 @@ const EditTaskModal = ({ isOpen, onClose, task }) => {
       setFormData({
         title: task.title || '',
         description: task.description || '',
-        status: task.status || 'pending',
+        // status: task.status || 'pending',
         startAt: task.startAt ? new Date(task.startAt).toISOString().split('T')[0] : '',
         endAt: task.endAt ? new Date(task.endAt).toISOString().split('T')[0] : '',
       });
@@ -95,6 +95,7 @@ const EditTaskModal = ({ isOpen, onClose, task }) => {
             className="mb-4"
           />
           
+          {/*
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Status
@@ -109,7 +110,7 @@ const EditTaskModal = ({ isOpen, onClose, task }) => {
               <option value="in-progress">In Progress</option>
               <option value="completed">Completed</option>
             </select>
-          </div>
+          </div>*/}
           
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">
