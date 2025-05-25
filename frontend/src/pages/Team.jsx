@@ -1,7 +1,8 @@
 // src/pages/Team.jsx
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchProjectsStart, fetchProjectsSuccess, fetchProjectsFailure } from '../features/projects/projectsSlice';
 import { teamService } from '../services/teamService';
 import { projectService } from '../services/projectService';
 import ProjectCard from '../components/ProjectCard';
@@ -17,11 +18,12 @@ import { showErrorAlert, showSuccessAlert } from '../utils/alertUtils';
 const Team = () => {
   const { teamId } = useParams();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const user = useSelector((state) => state.user.user);
+  const projects = useSelector((state) => state.projects.projects);
+  const projectsLoading = useSelector((state) => state.projects.loading);
   const [team, setTeam] = useState(null);
-  const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [projectsLoading, setProjectsLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -204,7 +206,7 @@ const Team = () => {
   useEffect(() => {
     const fetchTeamDetails = async () => {
       try {
-        const teamData = await teamService.getTeamById(teamId);
+        const teamData = await teamService.getTeamById(teamId, user);
         setTeam(teamData);
       } catch (error) {
         showErrorAlert('Failed to load team details');
@@ -216,21 +218,21 @@ const Team = () => {
     fetchTeamDetails();
   }, [teamId]);
 
-  // Fetch team projects
+  // Fetch team projects using Redux
   useEffect(() => {
     const fetchTeamProjects = async () => {
+      dispatch(fetchProjectsStart());
       try {
         const projectsData = await projectService.getProjects(teamId);
-        setProjects(projectsData);
+        dispatch(fetchProjectsSuccess(projectsData));
       } catch (error) {
+        dispatch(fetchProjectsFailure(error.message));
         showErrorAlert('Failed to load team projects');
-      } finally {
-        setProjectsLoading(false);
       }
     };
 
     fetchTeamProjects();
-  }, [teamId]);
+  }, [teamId, dispatch]);
 
   if (loading) {
     return (

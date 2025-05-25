@@ -13,9 +13,9 @@ export const teamService = {
     }
   },
 
-  getTeamById: async (teamId) => {
+  getTeamById: async (teamId, user = null) => {
     try {
-      const response = await axios.get(`/teams/${teamId}`);
+      const response = user ? await axios.get(`/teams/${teamId}`) : await axios.get(`/teams/${teamId}/public`);
       return response.data;
     } catch (error) {
       showErrorAlert(error.response?.data?.message || 'Failed to fetch team details');
@@ -58,7 +58,7 @@ export const teamService = {
   // Update team information
   updateTeam: async (teamId, updateData) => {
     try {
-      const response = await axios.patch(`/teams/${teamId}`, updateData);
+      const response = await axios.post(`/teams/${teamId}`, updateData);
       return response.data;
     } catch (error) {
       showErrorAlert(error.response?.data?.message || 'Failed to update team');
