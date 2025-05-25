@@ -43,6 +43,29 @@ export class ProjectsService {
 
     return {
       ...project,
+      teamOwnerId: team.ownerId,
+      isAdmin: team.members.some(
+        (member) => member.userId === user.userId && member.role === 'admin',
+      ),
+      // TODO tasks and their comments
+    };
+  }
+
+  async getPublicProject(projectId: string) {
+    const project = await this.getProjectById(projectId);
+
+    if (!project) return null;
+
+    const team = await this.teamsService.getTeamById(project.teamId);
+
+    if (!team || team.privacy === 'private') {
+      throw new Error('Team for the project not found or is private');
+    }
+
+    return {
+      ...project,
+      teamOwnerId: team.ownerId,
+      isAdmin: false,
       // TODO tasks and their comments
     };
   }

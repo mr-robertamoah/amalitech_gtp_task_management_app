@@ -32,6 +32,15 @@ export class ProjectsController {
     return project;
   }
 
+  @Get(':projectId/public')
+  async getPublicProject(@Param('projectId') projectId: string) {
+    const project = await this.projectsService.getPublicProject(projectId);
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+    return project;
+  }
+
   @UseGuards(AuthGuard('jwt'))
   @Post('')
   async createProject(
