@@ -1,6 +1,7 @@
 // src/services/projectService.js
 import axios from '../api/axios';
 import { showErrorAlert } from '../utils/alertUtils';
+import { changeArrayToString } from '../utils/errorUtils';
 
 export const projectService = {
   getProjects: async (teamId) => {
@@ -8,7 +9,7 @@ export const projectService = {
       const response = await axios.get(`/teams/${teamId}/projects`);
       return response.data;
     } catch (error) {
-      showErrorAlert(error.response?.data?.message || 'Failed to fetch projects');
+      showErrorAlert(changeArrayToString(error.response?.data?.message) || 'Failed to fetch projects');
       throw error;
     }
   },
@@ -18,7 +19,7 @@ export const projectService = {
       const response = await axios.post(`projects`, projectData);
       return response.data;
     } catch (error) {
-      showErrorAlert(error.response?.data?.message || 'Failed to create project');
+      showErrorAlert(changeArrayToString(error.response?.data?.message) || 'Failed to create project');
       throw error;
     }
   },
@@ -29,7 +30,7 @@ export const projectService = {
         await axios.get(`/projects/${projectId}`) : await axios.get(`/projects/${projectId}/public`);
       return response.data;
     } catch (error) {
-      showErrorAlert(error.response?.data?.message || 'Failed to fetch project details');
+      showErrorAlert(changeArrayToString(error.response?.data?.message) || 'Failed to fetch project details');
       throw error;
     }
   },
@@ -39,7 +40,7 @@ export const projectService = {
       const response = await axios.post(`/projects/${projectId}`, updateData);
       return response.data;
     } catch (error) {
-      showErrorAlert(error.response?.data?.message || 'Failed to update project');
+      showErrorAlert(changeArrayToString(error.response?.data?.message) || 'Failed to update project');
       throw error;
     }
   },
@@ -49,7 +50,17 @@ export const projectService = {
       const response = await axios.delete(`/projects/${projectId}`);
       return response.data;
     } catch (error) {
-      showErrorAlert(error.response?.data?.message || 'Failed to delete project');
+      showErrorAlert(changeArrayToString(error.response?.data?.message) || 'Failed to delete project');
+      throw error;
+    }
+  },
+  
+  getTeamMembers: async (teamId) => {
+    try {
+      const response = await axios.get(`/teams/${teamId}/members`);
+      return response.data;
+    } catch (error) {
+      showErrorAlert(changeArrayToString(error.response?.data?.message) || 'Failed to fetch team members');
       throw error;
     }
   }

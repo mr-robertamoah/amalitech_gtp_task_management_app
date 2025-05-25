@@ -1,5 +1,6 @@
 import axios from '../api/axios';
 import { showErrorAlert } from '../utils/alertUtils';
+import { changeArrayToString } from '../utils/errorUtils';
 
 export const teamService = {
   // Get teams the current user belongs to
@@ -8,7 +9,7 @@ export const teamService = {
       const response = await axios.get('/teams/all');
       return response.data;
     } catch (error) {
-      showErrorAlert(error.response?.data?.message || 'Failed to fetch your teams');
+      showErrorAlert(changeArrayToString(error.response?.data?.message) || 'Failed to fetch your teams');
       throw error;
     }
   },
@@ -18,7 +19,7 @@ export const teamService = {
       const response = user ? await axios.get(`/teams/${teamId}`) : await axios.get(`/teams/${teamId}/public`);
       return response.data;
     } catch (error) {
-      showErrorAlert(error.response?.data?.message || 'Failed to fetch team details');
+      showErrorAlert(changeArrayToString(error.response?.data?.message) || 'Failed to fetch team details');
       throw error;
     }
   },
@@ -28,7 +29,7 @@ export const teamService = {
       const response = await axios.get('/teams/public');
       return response.data;
     } catch (error) {
-      showErrorAlert(error.response?.data?.message || 'Failed to fetch public teams');
+      showErrorAlert(changeArrayToString(error.response?.data?.message) || 'Failed to fetch public teams');
       throw error;
     }
   },
@@ -39,7 +40,7 @@ export const teamService = {
       const response = await axios.post(`/teams/${teamId}/join`);
       return response.data;
     } catch (error) {
-      showErrorAlert(error.response?.data?.message || 'Failed to join team');
+      showErrorAlert(changeArrayToString(error.response?.data?.message) || 'Failed to join team');
       throw error;
     }
   },
@@ -50,7 +51,7 @@ export const teamService = {
       const response = await axios.post('/teams', teamData);
       return response.data;
     } catch (error) {
-      showErrorAlert(error.response?.data?.message || 'Failed to create team');
+      showErrorAlert(changeArrayToString(error.response?.data?.message) || 'Failed to create team');
       throw error;
     }
   },
@@ -61,7 +62,7 @@ export const teamService = {
       const response = await axios.post(`/teams/${teamId}`, updateData);
       return response.data;
     } catch (error) {
-      showErrorAlert(error.response?.data?.message || 'Failed to update team');
+      showErrorAlert(changeArrayToString(error.response?.data?.message) || 'Failed to update team');
       throw error;
     }
   },
@@ -72,7 +73,7 @@ export const teamService = {
       const response = await axios.delete(`/teams/${teamId}`);
       return response.data;
     } catch (error) {
-      showErrorAlert(error.response?.data?.message || 'Failed to delete team');
+      showErrorAlert(changeArrayToString(error.response?.data?.message) || 'Failed to delete team');
       throw error;
     }
   },
@@ -83,7 +84,7 @@ export const teamService = {
       const response = await axios.post(`/teams/${teamId}/invite`, inviteData);
       return response.data;
     } catch (error) {
-      showErrorAlert(error.response?.data?.message || 'Failed to invite users');
+      showErrorAlert(changeArrayToString(error.response?.data?.message) || 'Failed to invite users');
       throw error;
     }
   },
@@ -94,7 +95,7 @@ export const teamService = {
       const response = await axios.patch(`/teams/${teamId}/members/${userId}/role`, { role: 'admin' });
       return response.data;
     } catch (error) {
-      showErrorAlert(error.response?.data?.message || 'Failed to update member role');
+      showErrorAlert(changeArrayToString(error.response?.data?.message) || 'Failed to update member role');
       throw error;
     }
   },
@@ -105,7 +106,7 @@ export const teamService = {
       const response = await axios.patch(`/teams/${teamId}/members/${userId}/role`, { role: 'member' });
       return response.data;
     } catch (error) {
-      showErrorAlert(error.response?.data?.message || 'Failed to update member role');
+      showErrorAlert(changeArrayToString(error.response?.data?.message) || 'Failed to update member role');
       throw error;
     }
   },
@@ -116,7 +117,7 @@ export const teamService = {
       const response = await axios.patch(`/teams/${teamId}/members/${userId}/status`, { status: 'banned' });
       return response.data;
     } catch (error) {
-      showErrorAlert(error.response?.data?.message || 'Failed to ban member');
+      showErrorAlert(changeArrayToString(error.response?.data?.message) || 'Failed to ban member');
       throw error;
     }
   },
@@ -127,7 +128,7 @@ export const teamService = {
       const response = await axios.patch(`/teams/${teamId}/members/${userId}/status`, { status: 'active' });
       return response.data;
     } catch (error) {
-      showErrorAlert(error.response?.data?.message || 'Failed to activate member');
+      showErrorAlert(changeArrayToString(error.response?.data?.message) || 'Failed to activate member');
       throw error;
     }
   },
@@ -138,7 +139,7 @@ export const teamService = {
       const response = await axios.delete(`/teams/${teamId}/members/${userId}`);
       return response.data;
     } catch (error) {
-      showErrorAlert(error.response?.data?.message || 'Failed to remove member');
+      showErrorAlert(changeArrayToString(error.response?.data?.message) || 'Failed to remove member');
       throw error;
     }
   }
