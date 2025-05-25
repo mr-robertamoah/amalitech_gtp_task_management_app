@@ -1,9 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import Modal from './Modal';
 import Button from './Button';
-import { formatDate, formatFullDate } from '../utils/dateUtils';
+import { formatFullDate } from '../utils/dateUtils';
+import axios from '../api/axios';
+import { updateTask } from '../features/tasks/tasksSlice';
+import { updateUserTask } from '../features/userTasks/userTasksSlice';
 
 const TaskDetailsModal = ({ isOpen, onClose, task }) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const dispatch = useDispatch();
+  const user = useSelector(state => state.user.user);
+  
   if (!task) return null;
 
   const getStatusColor = (status) => {
@@ -12,6 +21,40 @@ const TaskDetailsModal = ({ isOpen, onClose, task }) => {
       case 'in-progress': return 'bg-blue-100 text-blue-800';
       case 'pending': return 'bg-yellow-100 text-yellow-800';
       default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+  
+  const canChangeStatus = user && (
+    user.userId === task.assignee?.userId || 
+    user.userId === task.assigner?.userId || 
+    user.userId === task.creator?.userId
+  );
+  
+  const changeTaskStatus = async (status) => {
+    if (!canChangeStatus) return;
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const response = await axios.post(`/tasks/${task.taskId}/change-status`, { status });
+      
+      // Update the task in Redux store
+      dispatch(updateTask({
+        ...task,
+        status
+      }));
+      
+      dispatch(updateUserTask({
+        ...task,
+        status
+      }));
+      
+      onClose();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update task status');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -59,7 +102,47 @@ const TaskDetailsModal = ({ isOpen, onClose, task }) => {
           </div>
         </div>
         
-        <div className="flex justify-end">
+        {error && (
+          <div className="mb-4 p-2 bg-red-100 text-red-700 rounded">
+            {error}
+          </div>
+        )}
+        
+        <div className="flex justify-between">
+          {canChangeStatus && (
+            <div className="flex space-x-2">
+              {task.status !== 'pending' && (
+                <Button 
+                  variant="warning" 
+                  onClick={() => changeTaskStatus('pending')}
+                  disabled={isLoading}
+                >
+                  Mark as Pending
+                </Button>
+              )}
+              
+              {task.status !== 'in-progress' && (
+                <Button 
+                  variant="info" 
+                  onClick={() => changeTaskStatus('in-progress')}
+                  disabled={isLoading}
+                >
+                  Start Progress
+                </Button>
+              )}
+              
+              {task.status !== 'done' && (
+                <Button 
+                  variant="success" 
+                  onClick={() => changeTaskStatus('done')}
+                  disabled={isLoading}
+                >
+                  Complete
+                </Button>
+              )}
+            </div>
+          )}
+          
           <Button variant="secondary" onClick={onClose}>
             Close
           </Button>

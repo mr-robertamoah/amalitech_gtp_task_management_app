@@ -22,6 +22,14 @@ const userTasksSlice = createSlice({
       state.loading = false;
       state.error = action.payload;
     },
+    updateUserTask(state, action) {
+      const index = state.tasks.findIndex(
+        (task) => task.taskId === action.payload.taskId
+      );
+      if (index !== -1) {
+        state.tasks[index] = action.payload;
+      }
+    },
     clearUserTasks(state) {
       state.tasks = [];
     }
@@ -32,7 +40,8 @@ export const {
   fetchUserTasksStart,
   fetchUserTasksSuccess,
   fetchUserTasksFailure,
-  clearUserTasks
+  clearUserTasks,
+  updateUserTask
 } = userTasksSlice.actions;
 
 export default userTasksSlice.reducer;

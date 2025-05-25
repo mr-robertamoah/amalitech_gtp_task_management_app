@@ -689,10 +689,10 @@ export class TasksService {
     }
 
     if (
-      team.ownerId !== user.userId ||
-      teamMembership.userId !== task.creator.userId ||
-      teamMembership.userId !== task.assignee?.userId ||
-      teamMembership.isOwner
+      team.ownerId !== user.userId &&
+      user.userId !== task.creator.userId &&
+      user.userId !== task.assignee?.userId &&
+      user.userId !== task.assigner?.userId
     ) {
       throw new Error('You cannot change the status of this task');
     }
@@ -709,7 +709,7 @@ export class TasksService {
     // TODO notify assignee if not changed by them
     // TODO notify creator if not changed by them
 
-    await this.updateTaskStatus(user.userId, task.projectId, dto.status);
+    await this.updateTaskStatus(task.taskId, task.projectId, dto.status);
 
     return this.getTaskData({ ...task, status: dto.status });
   }

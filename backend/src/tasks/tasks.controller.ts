@@ -96,7 +96,14 @@ export class TasksController {
     @GetUser() user: User,
     @Body() dto: ChangeTaskStatusDto,
   ) {
-    return await this.tasksService.changeTaskStatus(user, taskId, dto);
+    try {
+      return await this.tasksService.changeTaskStatus(user, taskId, dto);
+    } catch (error) {
+      if (error.message) {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
   }
 
   @UseGuards(AuthGuard('jwt'))
