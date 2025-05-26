@@ -1,0 +1,8 @@
+{
+  "source": "aws.events",
+  "detail-type": "Scheduled Event",
+  "resources": [
+    "arn:aws:events:us-east-1:123456789012:rule/daily-notification-check"
+  ],
+  "detail": {}
+}
