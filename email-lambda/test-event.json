@@ -1,0 +1,6 @@
+{
+  "recipients": ["test@example.com", "another-test@example.com"],
+  "subject": "Test Email from Lambda",
+  "htmlBody": "<h1>Hello from Lambda!</h1><p>This is a test email sent from the AWS Lambda function.</p>",
+  "textBody": "Hello from Lambda! This is a test email sent from the AWS Lambda function."
+}
