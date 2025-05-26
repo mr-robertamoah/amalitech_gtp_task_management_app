@@ -36,7 +36,7 @@ export class AuthService {
     if (!user) {
       throw new Error('Invalid credentials');
     }
-    const payload = { username: user.username, sub: user.userId };
+    const payload = { username: user.username, sub: user.userId, email: user.email };
     return {
       access_token: this.jwtService.sign(payload),
       user: {
@@ -82,7 +82,7 @@ export class AuthService {
     // Remove password from the newUser object before returning
     delete newUser.password;
     // Generate JWT token
-    const payload = { username: newUser.username, sub: newUser.userId };
+    const payload = { username: newUser.username, sub: newUser.userId, email: newUser.email };
     return {
       access_token: this.jwtService.sign(payload),
       user: newUser,

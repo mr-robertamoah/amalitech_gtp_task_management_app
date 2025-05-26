@@ -9,6 +9,9 @@ import { ProjectsService } from 'src/projects/projects.service';
 import { TeamsService } from 'src/teams/teams.service';
 import { TasksService } from 'src/tasks/tasks.service';
 import { UsersModule } from 'src/users/users.module';
+import { EmailModule } from 'src/email/email.module';
+import { EmailService } from 'src/email/email.service';
+import { NotificationsModule } from 'src/notifications/notifications.module';
 
 @Module({
   providers: [
@@ -17,8 +20,16 @@ import { UsersModule } from 'src/users/users.module';
     ProjectsService,
     TeamsService,
     TasksService,
+    EmailService,
   ],
   controllers: [CommentsController],
-  imports: [ProjectsModule, TeamsModule, TasksModule, UsersModule],
+  imports: [
+    ProjectsModule,
+    TeamsModule,
+    TasksModule,
+    UsersModule,
+    EmailModule,
+    NotificationsModule,
+  ],
 })
 export class CommentsModule {}

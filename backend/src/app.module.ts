@@ -7,9 +7,9 @@ import { TasksModule } from './tasks/tasks.module';
 import { TeamsModule } from './teams/teams.module';
 import { CommentsModule } from './comments/comments.module';
 import { NotificationsModule } from './notifications/notifications.module';
-import { NotificationController } from './notification/notification.controller';
 import { DatabaseModule } from './database/database.module';
 import { ProjectsModule } from './projects/projects.module';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
@@ -21,8 +21,9 @@ import { ProjectsModule } from './projects/projects.module';
     NotificationsModule,
     DatabaseModule,
     ProjectsModule,
+    EmailModule,
   ],
-  controllers: [AppController, NotificationController],
+  controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule {}

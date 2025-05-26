@@ -15,7 +15,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  validate(payload: { sub: string; username: string }) {
+  validate(payload: { sub: string; username: string; email: string }) {
     // Here you can add additional validation logic if needed
     // For example, you can check if the user exists in the database
     // const user = await this.usersService.findById(payload.sub);
@@ -26,6 +26,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     // return user;
     // For now, we will just return the payload
     // This will make the payload available in the request object
-    return { userId: payload.sub, username: payload.username };
+    return {
+      userId: payload.sub,
+      username: payload.username,
+      email: payload.email,
+    };
   }
 }
