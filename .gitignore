@@ -3,6 +3,12 @@
 /*/node_modules
 /*/build
 
+/*/*.zip
+
+ecs-task-definition-update.json
+updated-bucket-policy.json
+*deploy*
+
 # Logs
 logs
 *.log
