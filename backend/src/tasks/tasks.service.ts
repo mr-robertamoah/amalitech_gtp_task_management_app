@@ -19,6 +19,8 @@ import { UpdateTaskDto } from './dto/update-task.dto';
 import { ChangeTaskStatusDto } from './dto/change-task-status.dto';
 import { AssignTaskDto } from './dto/assign-task.dto';
 import { UsersService } from 'src/users/users.service';
+import { EmailService } from 'src/email/email.service';
+import { NotificationsService } from 'src/notifications/notifications.service';
 
 @Injectable()
 export class TasksService {
@@ -27,6 +29,8 @@ export class TasksService {
     private readonly teamsService: TeamsService,
     private readonly projectsService: ProjectsService,
     private readonly usersService: UsersService,
+    private readonly emailService: EmailService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async assignTaskToMember(user: User, taskId: string, dto: AssignTaskDto) {
@@ -129,12 +133,56 @@ export class TasksService {
       }),
     );
 
-    // TODO notify assignee
+    await this.sendTaskAssignmentEmails(task); // TODO move to queue
+
+    return this.getTaskData(task);
+  }
+
+  private async sendTaskUnassignmentEmails(
+    assignee: User,
+    user: User,
+    title: string,
+  ) {
+    if (!assignee) {
+      return;
+    }
+
+    const rec = await this.usersService.getUser(assignee?.userId);
+
+    if (!rec) {
+      return;
+    }
+
+    await this.emailService.sendEmail(
+      [rec.email],
+      'Task Unassigned: ' + title,
+      'You have been unassigned from a task by ' + user.username,
+      user.email || '',
+    );
+  }
+
+  private async sendTaskAssignmentEmails(task: Task) {
     // TODO notify team owner if not changed by them
     // TODO notify task creator if not changed by them
     // TODO notify project owner if not changed by them
 
-    return this.getTaskData(task);
+    if (!task.assignee) {
+      return;
+    }
+
+    const rec = await this.usersService.getUser(task.assignee?.userId);
+
+    if (!rec) {
+      return;
+    }
+
+    await this.emailService.sendEmail(
+      [rec.email],
+      'Task Assigned: ' + task.title,
+      'You have been assigned a task',
+      (await this.usersService.getUser(task.assigner?.userId ?? ''))?.email ||
+        '',
+    );
   }
 
   async removeAssigneeFromTask(user: User, taskId: string) {
@@ -204,6 +252,7 @@ export class TasksService {
       throw new Error('You are not allowed to unassign this task');
     }
 
+    const assignee = task.assignee;
     delete task.assignee;
     delete task.assigneeId;
     delete task.assigner;
@@ -228,6 +277,8 @@ export class TasksService {
     // TODO notify team owner if not changed by them
     // TODO notify task creator if not changed by them
     // TODO notify project owner if not changed by them
+
+    await this.sendTaskUnassignmentEmails(assignee as User, user, task.title); // TODO move to queue
 
     return this.getTaskData(task);
   }
@@ -509,6 +560,12 @@ export class TasksService {
 
     // TODO notify team members
 
+    if (dto.endAt) {
+      await this.notificationsService.createOrUpdateNotification(task);
+    } else {
+      await this.notificationsService.deleteNotification(taskId);
+    }
+
     return this.getTaskData(task);
   }
 
@@ -607,6 +664,12 @@ export class TasksService {
     // TODO if not updated by creator, notify creator
     // TODO if not updated by assignee, notify assignee
 
+    if (task.endAt) {
+      await this.notificationsService.createOrUpdateNotification(task);
+    } else {
+      await this.notificationsService.deleteNotification(taskId);
+    }
+
     return this.getTaskData(task);
   }
 
@@ -662,6 +725,8 @@ export class TasksService {
 
     // TODO delete associated comments
     // TODO notify team members
+
+    await this.notificationsService.deleteNotification(taskId);
 
     return { message: 'Task deleted successfully' };
   }

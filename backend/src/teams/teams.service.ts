@@ -19,12 +19,14 @@ import { RemoveUsersDto } from './dto/remove-users.dto';
 import { RespondToInvitationDto } from './dto/respond-to-invitation.dto';
 import { Project } from 'src/projects/interfaces/project.interface';
 import { BatchGetItemCommand } from '@aws-sdk/client-dynamodb';
+import { EmailService } from 'src/email/email.service';
 
 @Injectable()
 export class TeamsService {
   constructor(
     @Inject('DYNAMO_CLIENT') private readonly db: DynamoDBDocumentClient,
     private readonly userService: UsersService,
+    private readonly emailService: EmailService,
   ) {}
 
   async getTeamAndMembersById(teamId: string): Promise<Team | null> {
@@ -545,7 +547,83 @@ export class TeamsService {
     //   );
     // }
 
+    await this.sendTeamInvitationEmails(team, notifiableUsers, owner.username); // TODO move to queue
+
     return await this.getTeamData(team);
+  }
+
+  private async sendTeamInvitationEmails(
+    team: Team,
+    users: User[],
+    sender: string,
+  ) {
+    if (users.length === 0) {
+      return;
+    }
+    await this.emailService.sendTeamInvitation(
+      users.map((u) => u.email),
+      team.name,
+      sender,
+    );
+  }
+
+  private async sendTeamMemberBanEmails(
+    team: Team,
+    users: User[],
+    senderEmail: string,
+  ) {
+    if (users.length === 0) {
+      return;
+    }
+    await this.emailService.sendEmail(
+      users.map((u) => u.email),
+      'Team Ban',
+      'You have been banned from team with name: ' + team.name,
+      'You have been banned from team with name: ' + team.name,
+      senderEmail,
+    );
+  }
+
+  private async sendTeamMemberActivationEmails(
+    team: Team,
+    users: User[],
+    senderEmail: string,
+  ) {
+    if (users.length === 0) {
+      return;
+    }
+    await this.emailService.sendEmail(
+      users.map((u) => u.email),
+      'Team Membership Activated',
+      'Your membership of team with name: ' +
+        team.name +
+        ' has been activated.',
+      'Your membership of team with name: ' +
+        team.name +
+        ' has been activated.',
+      senderEmail,
+    );
+  }
+
+  private async sendTeamMemberDeletionEmails(
+    team: Team,
+    users: User[],
+    senderEmail: string,
+  ) {
+    if (users.length === 0) {
+      return;
+    }
+    await this.emailService.sendEmail(
+      users.map((u) => u.email),
+      'Team Membership Removed',
+      'Your membership of team with name: ' +
+        team.name +
+        ' has been deleted. You will no longer be able to access this team if it is private.',
+      'Your membership of team with name: ' +
+        team.name +
+        ' has been deleted. You will no longer be able to access this team if it is private.',
+      senderEmail,
+    );
   }
 
   async removeUsersFromTeam(
@@ -566,7 +644,7 @@ export class TeamsService {
     const notifiableUsers: User[] = [];
 
     for (const userId of removeUsersDto.userIds) {
-      const user: User | null = await this.userService.getUserById(userId);
+      const user: User | null = await this.userService.getUser(userId);
 
       if (!user || user.userId == owner.userId) {
         continue;
@@ -602,6 +680,8 @@ export class TeamsService {
     //     `You have been invited to join team ${team.name}`,
     //   );
     // }
+
+    await this.sendTeamMemberDeletionEmails(team, notifiableUsers, owner.email);
 
     return await this.getTeamData(team);
   }
@@ -650,6 +730,8 @@ export class TeamsService {
     //   );
     // }
 
+    await this.sendTeamMemberBanEmails(team, notifiableUsers, owner.email);
+
     return await this.getTeamData(team);
   }
 
@@ -696,6 +778,12 @@ export class TeamsService {
     //     `You have been invited to join team ${team.name}`,
     //   );
     // }
+
+    await this.sendTeamMemberActivationEmails(
+      team,
+      notifiableUsers,
+      owner.email,
+    );
 
     return await this.getTeamData(team);
   }
