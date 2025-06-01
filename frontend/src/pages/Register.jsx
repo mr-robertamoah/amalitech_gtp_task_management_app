@@ -11,7 +11,7 @@ export default function Register() {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
-    name: '',
+    username: '',
     email: '',
     password: '',
     confirmPassword: '',
@@ -39,9 +39,10 @@ export default function Register() {
     
     try {
       const response = await axios.post('/auth/register', {
-        name: formData.name,
+        username: formData.username,
         email: formData.email,
         password: formData.password,
+        passwordConfirmation: formData.confirmPassword,
       });
       dispatch(loginSuccess(response.data));
       navigate('/');
@@ -97,13 +98,13 @@ export default function Register() {
               )}
 
               <Input
-                label="Full Name"
-                name="name"
+                label="Username"
+                name="username"
                 type="text"
                 value={formData.name}
                 onChange={handleChange}
                 required
-                placeholder="John Doe"
+                placeholder="JohnDoe"
               />
 
               <Input
@@ -136,6 +137,7 @@ export default function Register() {
                 placeholder="••••••••"
               />
 
+              {/*
               <div className="flex items-center">
                 <input
                   id="terms"
@@ -148,6 +150,7 @@ export default function Register() {
                   I agree to the <a href="#" className="text-blue-600 hover:text-blue-500">Terms</a> and <a href="#" className="text-blue-600 hover:text-blue-500">Privacy Policy</a>
                 </label>
               </div>
+              */}
 
               <Button
                 type="submit"

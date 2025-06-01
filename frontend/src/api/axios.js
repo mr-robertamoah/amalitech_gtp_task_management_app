@@ -4,7 +4,7 @@ import { store } from '../app/store';
 const backendBaseURL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
 const axiosInstance = axios.create({
-  baseURL: backendBaseURL,
+  baseURL: backendBaseURL + '/api',
   headers: {
     'Content-Type': 'application/json',
   },
