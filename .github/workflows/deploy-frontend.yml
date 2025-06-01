@@ -24,7 +24,7 @@ jobs:
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
+        aws-region: ${{ secrets.AWS_REGION }}
 
     - name: Login to Amazon ECR
       id: login-ecr
@@ -77,8 +77,8 @@ jobs:
 
     - name: Deploy Amazon ECS task definition
       env:
-        SERVICE_NAME: ${{ env.ECS_FRONTEND_SERVICE_NAME }}
-        CLUSTER_NAME: ${{ env.ECS_CLUSTER_NAME }}
+        SERVICE_NAME: ${{ secrets.ECS_FRONTEND_SERVICE_NAME }}
+        CLUSTER_NAME: ${{ secrets.ECS_CLUSTER_NAME }}
       run: |
         aws ecs update-service --task-definition $TASK_DEF_ARN \
         --service $SERVICE_NAME \
