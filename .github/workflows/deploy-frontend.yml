@@ -51,7 +51,6 @@ jobs:
       run: |
         FAMILY=$(aws ecs describe-services --services $SERVICE_NAME --cluster $CLUSTER --query "services[0].taskDefinition" --output text | awk -F'/' '{print $2}' | awk -F':' '{print $1}')
         TASK_DEF=$(aws ecs describe-task-definition --task-definition $FAMILY)
-        echo $FAMILY $TASK_DEF
         NEW_DEF=$(echo $TASK_DEF | jq --arg IMAGE "$IMAGE_URI" --arg CONTAINER_NAME "react-container" '                                                                                                                                                      
           .taskDefinition |
           {
@@ -67,8 +66,7 @@ jobs:
             cpu,
             memory,
             networkMode,
-            executionRoleArn,
-            taskRoleArn
+            executionRoleArn
           }
         ')
         echo "$NEW_DEF" > new-task-def.json
