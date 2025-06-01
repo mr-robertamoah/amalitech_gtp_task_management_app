@@ -45,7 +45,7 @@ jobs:
 
     - name: Fill in the new image ID in the Amazon ECS task definition
       env:
-        IMAGE_URI: ${{ steps.build-image.output.image }}
+        IMAGE_URI: ${{ steps.build-image.outputs.image }}
         SERVICE_NAME: ${{ secrets.ECS_FRONTEND_SERVICE_NAME }}
         CLUSTER: ${{ secrets.ECS_CLUSTER_NAME }}
       run: |
