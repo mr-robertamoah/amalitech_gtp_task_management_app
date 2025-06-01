@@ -30,6 +30,7 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build image and push to ECR
+        id: build-image
         env:
           ECR_REPO: ${{ secrets.ECR_BACKEND_REPO_URI }}
           IMAGE_TAG: ${{ github.sha }}
