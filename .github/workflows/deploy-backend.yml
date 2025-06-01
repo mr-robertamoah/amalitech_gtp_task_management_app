@@ -70,14 +70,14 @@ jobs:
           TASK_DEF_ARN=$(cat output.json | jq -r ".taskDefinition.taskDefinitionArn")
           echo "TASK_DEF_ARN=$TASK_DEF_ARN" > $GITHUB_ENV
 
-          - name: Update backend service with new task definition
-            env:
-              SERVICE_NAME: ${{ secrets.ECS_BACKEND_SERVICE_NAME }}
-              CLUSTER_NAME: ${{ secrets.ECS_CLUSTER_NAME }}
-            run: |
-              aws ecs update-service --task-definition $TASK_DEF_ARN \
-              --cluster $CLUSTER_NAME \
-              --service $SERVICE_NAME
+      - name: Update backend service with new task definition
+        env:
+          SERVICE_NAME: ${{ secrets.ECS_BACKEND_SERVICE_NAME }}
+          CLUSTER_NAME: ${{ secrets.ECS_CLUSTER_NAME }}
+        run: |
+          aws ecs update-service --task-definition $TASK_DEF_ARN \
+          --cluster $CLUSTER_NAME \
+          --service $SERVICE_NAME
               
 
 
