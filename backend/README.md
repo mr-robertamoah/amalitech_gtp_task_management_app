@@ -1,98 +1,165 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Task Management Application - Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A NestJS-based backend API for the Task Management Application with JWT authentication, DynamoDB integration, and AWS Lambda notifications.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Features
 
-## Description
+- User authentication and authorization
+- Team and project management
+- Task creation, assignment, and tracking
+- Comment system
+- Email notifications
+- DynamoDB integration
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Getting Started
 
-## Project setup
+### Prerequisites
 
-```bash
-$ npm install
+- Node.js (v16 or higher)
+- npm or yarn
+- AWS account (for DynamoDB and Lambda functions)
+
+### Environment Variables
+
+Create a `.env` file in the root directory with the following variables:
+
+```
+# JWT Configuration
+JWT_SECRET=your_jwt_secret_key
+JWT_EXPIRATION=1d
+
+# AWS Configuration
+AWS_REGION=your_aws_region
+AWS_ACCESS_KEY_ID=your_aws_access_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+
+# DynamoDB Configuration
+DYNAMO_TABLE_NAME=your_dynamo_table_name
+
+# CORS Configuration
+ALLOWED_ORIGIN=http://localhost:5173
+
+# Lambda Functions
+EMAIL_LAMBDA_FUNCTION_NAME=send-email-function
+
+# Server Port (optional)
+PORT=3000
 ```
 
-## Compile and run the project
+### Installation
 
 ```bash
-# development
-$ npm run start
+# Install dependencies
+npm install
 
-# watch mode
-$ npm run start:dev
+# Start development server
+npm run start:dev
 
-# production mode
-$ npm run start:prod
+# Build for production
+npm run build
+
+# Run production server
+npm run start:prod
 ```
 
-## Run tests
+### Docker Setup
 
 ```bash
-# unit tests
-$ npm run test
+# Build the Docker image
+docker build -t task-management-backend .
 
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+# Run the container
+docker run -p 3000:3000 --env-file .env task-management-backend
 ```
 
-## Deployment
+## API Endpoints
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+### Authentication
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+| Method | Endpoint | Description | Request Body | Response |
+|--------|----------|-------------|-------------|----------|
+| POST | `/auth/register` | Register a new user | `{ username, email, password }` | `{ access_token, user }` |
+| POST | `/auth/login` | Login user | `{ email, password }` | `{ access_token, user }` |
+| POST | `/auth/logout` | Logout user | - | `{ message }` |
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+### Users
+
+| Method | Endpoint | Description | Request Body | Response |
+|--------|----------|-------------|-------------|----------|
+| POST | `/users/:userId` | Update user profile | `{ username, email }` | Updated user object |
+| POST | `/users/change-password` | Change password | `{ currentPassword, newPassword, confirmPassword }` | `{ message }` |
+| DELETE | `/users/account` | Delete user account | - | `{ message }` |
+
+### Teams
+
+| Method | Endpoint | Description | Request Body | Response |
+|--------|----------|-------------|-------------|----------|
+| GET | `/teams/:teamId` | Get team details | - | Team object |
+| POST | `/teams` | Create a team | `{ name, description }` | Created team object |
+| POST | `/teams/:teamId` | Update team | `{ name, description }` | Updated team object |
+| DELETE | `/teams/:teamId` | Delete team | - | `{ message }` |
+| POST | `/teams/:teamId/invite` | Invite users to team | `{ emails }` | `{ message }` |
+| POST | `/teams/:teamId/respond-invitation` | Respond to invitation | `{ accept: boolean }` | `{ message }` |
+| POST | `/teams/:teamId/remove-users` | Remove users from team | `{ userIds }` | `{ message }` |
+
+### Projects
+
+| Method | Endpoint | Description | Request Body | Response |
+|--------|----------|-------------|-------------|----------|
+| GET | `/projects/:projectId` | Get project details | - | Project object |
+| GET | `/projects/:projectId/public` | Get public project | - | Project object |
+| POST | `/projects` | Create a project | `{ name, description, teamId, isPublic }` | Created project object |
+| POST | `/projects/:projectId` | Update project | `{ name, description, isPublic }` | Updated project object |
+| DELETE | `/projects/:projectId` | Delete project | - | `{ message }` |
+
+### Tasks
+
+| Method | Endpoint | Description | Request Body | Response |
+|--------|----------|-------------|-------------|----------|
+| GET | `/tasks/:taskId` | Get task details | - | Task object |
+| GET | `/tasks/users/:userId` | Get user's tasks | - | Array of tasks |
+| GET | `/tasks/projects/:projectId` | Get project tasks | - | Array of tasks |
+| GET | `/tasks/projects/:projectId/public` | Get public project tasks | - | Array of tasks |
+| POST | `/tasks` | Create a task | `{ title, description, dueDate, projectId }` | Created task object |
+| POST | `/tasks/:taskId` | Update task | `{ title, description, dueDate }` | Updated task object |
+| POST | `/tasks/:taskId/change-status` | Change task status | `{ status }` | Updated task object |
+| POST | `/tasks/:taskId/assign` | Assign task | `{ assigneeId }` | Updated task object |
+| POST | `/tasks/:taskId/unassign` | Unassign task | - | Updated task object |
+| DELETE | `/tasks/:taskId` | Delete task | - | `{ message }` |
+
+### Comments
+
+| Method | Endpoint | Description | Request Body | Response |
+|--------|----------|-------------|-------------|----------|
+| GET | `/comments/tasks/:taskId` | Get task comments | - | Array of comments |
+| POST | `/comments` | Create comment | `{ content, taskId }` | Created comment object |
+| POST | `/comments/:commentId` | Update comment | `{ content }` | Updated comment object |
+| DELETE | `/comments/:commentId` | Delete comment | - | `{ message }` |
+
+## Authentication and Authorization
+
+The application uses JWT (JSON Web Token) for authentication. Protected routes require a valid JWT token in the Authorization header:
+
+```
+Authorization: Bearer <token>
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+Authorization is implemented at the service level, ensuring users can only access resources they have permission to.
 
-## Resources
+## Database Structure
 
-Check out a few resources that may come in handy when working with NestJS:
+The application uses DynamoDB with the following main entities:
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+- **Users**: User accounts and profile information
+- **Teams**: Team details and member associations
+- **Projects**: Project information linked to teams
+- **Tasks**: Task details linked to projects and assignees
+- **Comments**: Comments linked to tasks and users
 
-## Support
+## Notification System
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Email notifications are sent via AWS Lambda functions for events such as:
+- Team invitations
+- Task assignments
+- Task status changes
+- Comment notifications
