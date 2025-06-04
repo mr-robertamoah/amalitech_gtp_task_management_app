@@ -1,0 +1,87 @@
+name: Deploy backend to ECS
+
+on:
+  push:
+    paths: 'backend/**'
+    branches: main
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  
+jobs:
+  deploy-backend:
+    name: Build and Deploy to ECS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v4.1.0
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build image and push to ECR
+        id: build-image
+        env:
+          ECR_REPO: ${{ secrets.ECR_BACKEND_REPO_URI }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REPO:$IMAGE_TAG ./backend
+          docker push $ECR_REPO:$IMAGE_TAG
+          echo "image=$ECR_REPO:$IMAGE_TAG" > $GITHUB_OUTPUT
+
+      - name: Register task definition version with new image
+        env:
+          IMAGE_URI: ${{ steps.build-image.outputs.image }}
+          SERVICE_NAME: ${{ secrets.ECS_BACKEND_SERVICE_NAME }}
+          CLUSTER_NAME: ${{ secrets.ECS_CLUSTER_NAME }}
+        run: |
+          FAMILY=$(aws ecs describe-services --services $SERVICE_NAME --cluster $CLUSTER_NAME --query "services[0].taskDefinition" --output text | awk -F '/' '{print $2}' | awk -F ':' '{print $1}')
+          TASK_DEF=$(aws ecs describe-task-definition --task-definition $FAMILY)
+          NEW_TASK_DEF=$(echo $TASK_DEF | jq --arg IMAGE "$IMAGE_URI" --arg CONTAINER_NAME "nestjs-container" '
+            .taskDefinition |
+            {
+              family,
+              containerDefinitions: (.containerDefinitions | map(
+                if .name == $CONTAINER_NAME then
+                  .image = $IMAGE
+                else
+                  .
+                end
+              )),
+              requiresCompatibilities,
+              cpu,
+              memory,
+              networkMode,
+              executionRoleArn
+            }
+          ')
+          echo "$NEW_TASK_DEF" > new_td.json
+          aws ecs register-task-definition --cli-input-json file://new_td.json > output.json
+          TASK_DEF_ARN=$(cat output.json | jq -r ".taskDefinition.taskDefinitionArn")
+          echo "TASK_DEF_ARN=$TASK_DEF_ARN" > $GITHUB_ENV
+
+      - name: Update backend service with new task definition
+        env:
+          SERVICE_NAME: ${{ secrets.ECS_BACKEND_SERVICE_NAME }}
+          CLUSTER_NAME: ${{ secrets.ECS_CLUSTER_NAME }}
+        run: |
+          aws ecs update-service --task-definition $TASK_DEF_ARN \
+          --cluster $CLUSTER_NAME \
+          --service $SERVICE_NAME
+              
+
+
+          
+            
+          
+      
